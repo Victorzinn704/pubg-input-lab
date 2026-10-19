@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Windows synthetic tests
+    runs-on: windows-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install verified AutoHotkey runtime
+        run: .\scripts\Setup-Runtime.ps1
+      - name: Use example configurations
+        run: |
+          Copy-Item -LiteralPath profiles.example.ini -Destination profiles.ini
+          Copy-Item -LiteralPath hotkeys.example.ini -Destination hotkeys.ini
+      - name: Validate without game input
+        run: .\Validar.ps1

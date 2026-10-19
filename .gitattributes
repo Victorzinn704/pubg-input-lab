@@ -1,0 +1,9 @@
+* text=auto eol=lf
+*.ahk text eol=crlf
+*.ps1 text eol=crlf
+*.cmd text eol=crlf
+*.ini text eol=crlf
+*.exe binary
+*.zip binary
+*.png binary
+*.pdf binary
