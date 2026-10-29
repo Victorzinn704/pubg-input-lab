@@ -229,7 +229,7 @@ LabConvertSchool(entry, stance, observedInterval, scale, duration, maxStep) {
         throw Error("Postura invalida.")
     base := stance = "Deitado" ? entry.prone : (stance = "Agachado" ? entry.ctrl : entry.normal)
     preset := LabNewPreset()
-    preset.Label := entry.Name " - " stance " (SCHOOL)"
+    preset.Label := entry.Name " - SCHOOL (FDCaffeine) - " stance
     preset.Weapon := entry.Name
     preset.Stance := stance
     preset.IntervalMs := observedInterval
@@ -247,6 +247,36 @@ LabConvertSchool(entry, stance, observedInterval, scale, duration, maxStep) {
     }
     LabValidatePreset(preset, maxStep)
     return preset
+}
+
+LabSchoolPresetPack(entries, maxStep) {
+    presets := []
+    for entry in entries {
+        for stanceIndex, stance in ["Em pe", "Agachado", "Deitado"] {
+            profile := LabConvertSchool(entry, stance, 16, 0.1, 3000, maxStep)
+            token := RegExReplace(StrUpper(StrReplace(entry.Name, Chr(0x039F), "O")), "[^A-Z0-9]", "")
+            profile.Name := "User_School_" token "_" stanceIndex
+            presets.Push(profile)
+        }
+    }
+    LabSerializeLibrary(presets, maxStep)
+    return presets
+}
+
+LabAddMissingPresets(existing, incoming, maxStep) {
+    combined := existing.Clone()
+    names := Map()
+    names.CaseSense := "Off"
+    for profile in existing
+        names[profile.Name] := true
+    for profile in incoming {
+        if !names.Has(profile.Name) {
+            combined.Push(LabClonePreset(profile))
+            names[profile.Name] := true
+        }
+    }
+    LabSerializeLibrary(combined, maxStep)
+    return combined
 }
 
 LabReadPreferences(path) {

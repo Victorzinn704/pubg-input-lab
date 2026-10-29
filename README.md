@@ -4,11 +4,13 @@ Laboratório independente de perfis de movimento em AutoHotkey v2 para Windows. 
 
 Os perfis de arma distribuídos são referências **sem calibração de recoil**. Armar um perfil com X/Y iguais a zero não produz compensação. Ajustes pessoais ficam no computador; o projeto não promete spray perfeito, indetectabilidade ou aprovação do PUBG/KRAFTON.
 
-## Biblioteca 1.4.0
+## Biblioteca 1.4.1
 
 O painel inclui uma biblioteca para criar, duplicar, renomear e excluir presets; registrar arma, mira/zoom, postura, acessórios e sensibilidade; editar curvas X/Y com prévia; importar/exportar INI; e editar atalhos sem reiniciar. O ponto central é opcional, desativado por padrão e limitado à janela alvo com foco.
 
-Há também **26 referências SCHOOL**, com licença MIT e origem preservadas. A conversão gera um rascunho com hipótese temporal e escala explícitas; os valores permanecem não validados. Os perfis originais e as calibrações pessoais não são sobrescritos. Consulte o [guia de presets](docs/PRESETS.md) e os [avisos de terceiros](THIRD_PARTY_NOTICES.md).
+Há também **78 presets SCHOOL (FDCaffeine): 26 armas × 3 posturas**, com licença MIT e origem preservadas. Instalações novas já incluem esses presets. **Ctrl+.** avança e **Ctrl+,** volta entre os presets da mesma arma e modo de disparo, incluindo o ajuste original. A navegação é circular e seleciona/ativa o preset com o jogo em foco; solte o gatilho antes da nova rajada.
+
+Os presets usam a conversão documentada de 16 ms, escala 0,1 e duração de 3 s; continuam não validados. São configurações do laboratório, não alterações nas opções de sensibilidade do PUBG. Seus ajustes pessoais são preservados. Para acrescentar as referências a uma biblioteca existente, feche o aplicativo e execute `Importar-SCHOOL.cmd`; repetições não duplicam nem substituem IDs existentes. Consulte o [guia de presets](docs/PRESETS.md) e os [avisos de terceiros](THIRD_PARTY_NOTICES.md).
 
 ## Instalação e validação
 
@@ -62,6 +64,7 @@ A tarja permanece em uma linha de 280×26 no canto do jogo, sem receber foco ou 
 | --- | --- | --- |
 | `profiles.example.ini` | Exemplo de perfis e limites; início em simulação | Sim |
 | `hotkeys.example.ini` | Mapeamento inicial dos comandos | Sim |
+| `presets.example.ini` | 78 presets atribuídos, gerados da referência fixa | Sim |
 | `profiles.ini` | Perfis, alvo e modo locais | Não |
 | `hotkeys.ini` | Teclas locais | Não |
 | `calibrations.ini` | Ganhos e segmentos salvos pelo usuário | Não |

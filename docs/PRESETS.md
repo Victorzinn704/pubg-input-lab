@@ -1,6 +1,16 @@
-# Biblioteca de presets — 1.4.0
+# Biblioteca de presets — 1.4.1
 
 Abra **Biblioteca: presets, contexto, curvas e atalhos** no painel. Abrir a biblioteca desarma o perfil. Salvar ou escolher um preset não dispara nem ativa movimento; a ativação continua pelo atalho da arma ou pelo painel.
+
+## Alternar durante o jogo
+
+Selecione a arma normalmente, por exemplo Ctrl+Alt+A para M416. **Ctrl+.** seleciona e ativa o próximo preset dessa arma; **Ctrl+,** volta ao anterior. A lista é circular: ajuste original → SCHOOL em pé → SCHOOL agachado → SCHOOL deitado → ajuste original. Outros presets pessoais da mesma arma/modo também participam, na ordem da biblioteca.
+
+A comparação usa nomes equivalentes (Beryl M762/BerylM762, SCAR-L/SCARL, Tommy Gun/Thompson etc.) e preserva o modo de disparo. Mk14 tiro único não é misturado ao Mk14 automático. Se não houver outra variante, a navegação não altera nem ativa o perfil. Fora do jogo esses atalhos não são capturados. Solte o gatilho após trocar; a troca não produz movimento por si só.
+
+O indicador compacto identifica `SCHOOL/PE`, `SCHOOL/AG` ou `SCHOOL/DEI`. O nome completo inclui **SCHOOL (FDCaffeine)** no painel/biblioteca. O ganho mostrado é o do preset selecionado; os atalhos não alteram a sensibilidade configurada dentro do PUBG. Ao retornar ao preset original, seu ganho salvo é recarregado; use F5 para preservar ajustes antes de trocar.
+
+Instalações novas recebem 78 presets em `presets.local.ini` a partir de `presets.example.ini`. Em uma instalação com biblioteca existente, feche o aplicativo e execute `Importar-SCHOOL.cmd`: somente IDs ausentes são acrescentados. A operação pode ser repetida e preserva edições locais de presets já instalados. Os dados têm intervalo assumido de 16 ms, escala 0,1 e duração de 3 s. Ajuste essas hipóteses pela aba de referências se necessário; não representam medições do seu jogo.
 
 ## Criar uma configuração
 
@@ -30,6 +40,7 @@ A aba **Referências SCHOOL** contém 26 armas e três posturas. A conversão pe
 
 - Ctrl+Alt+A–Z ou Ctrl+Alt+1–9: associação editável por perfil; **D** é reservada.
 - Ctrl+Alt+D: parada global, mesmo fora do jogo.
+- Ctrl+. / Ctrl+,: próximo/anterior preset da mesma arma e modo de disparo; seleciona e ativa.
 - Ctrl+Alt+0: alternar ponto central, com o jogo em foco.
 - Ponto central: desativado por padrão, tamanho de 3 a 9 pixels e cor hexadecimal. Aparece apenas na janela alvo com foco, após a geometria estabilizar. Não captura cliques nem foco.
 - Mouse4 e Mouse5 continuam sem associação pelo laboratório.

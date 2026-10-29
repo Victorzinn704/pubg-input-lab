@@ -77,6 +77,45 @@ RunPresetTests() {
     }
     school := LabReadSchool(A_ScriptDir "\..\references\school\school_presets.ini")
     PresetAssert(school.Length = 26, "26 attributed reference weapons", &count)
+    pack := LabSchoolPresetPack(school, 12)
+    PresetAssert(pack.Length = 78, "26 weapons times 3 stances", &count)
+    PresetAssert(LabSerializeLibrary(pack, 12) = LabSerializeLibrary(LabSchoolPresetPack(school, 12), 12), "Stable reference IDs and content", &count)
+    shipped := LabReadLibrary(A_ScriptDir "\..\presets.example.ini", 12)
+    expectedPack := LabParseLibrary(LabSerializeLibrary(pack, 12), 12)
+    PresetAssert(LabSerializeLibrary(shipped, 12) = LabSerializeLibrary(expectedPack, 12), "Shipped pack matches pinned source conversion", &count)
+    customPack := LabClonePreset(pack[1])
+    customPack.SavedGain := 0.5
+    seeded := LabAddMissingPresets([customPack], pack, 12)
+    PresetAssert(seeded.Length = 78 && seeded[1].SavedGain = 0.5, "Seeding preserves edited reference", &count)
+    repeated := LabAddMissingPresets(seeded, pack, 12)
+    PresetAssert(LabSerializeLibrary(repeated, 12) = LabSerializeLibrary(seeded, 12), "Seeding is idempotent", &count)
+    cfg := ReadLabConfig(A_ScriptDir "\..\profiles.ini")
+    combined := LabMergeLibrary(cfg.Profiles, pack)
+    for index, profile in combined {
+        forward := LabCyclePresetIndex(combined, index, 1)
+        backward := LabCyclePresetIndex(combined, forward, -1)
+        PresetAssert(backward = index, "Forward/backward roundtrip", &count)
+        PresetAssert(LabWeaponIdentity(combined[forward]) = LabWeaponIdentity(profile), "Cycling never changes weapon", &count)
+        PresetAssert(combined[forward].TriggerMode = profile.TriggerMode, "Cycling never changes trigger mode", &count)
+    }
+    for name in ["M416", "BerylM762", "SCARL", "TommyGun", "Mk14_continuous"] {
+        start := 0
+        for index, profile in combined {
+            if profile.Name = name
+                start := index
+        }
+        current := start
+        seen := Map()
+        Loop 4 {
+            seen[current] := true
+            current := LabCyclePresetIndex(combined, current, 1)
+        }
+        PresetAssert(current = start && seen.Count = 4, "Base plus three stances for " name, &count)
+    }
+    PresetReject((*) => LabCyclePresetIndex(combined, 0, 1), "Invalid cycle index", &count)
+    PresetReject((*) => LabCyclePresetIndex(combined, 1, 0), "Invalid cycle direction", &count)
+    for profile in pack
+        PresetAssert(InStr(profile.Label, "SCHOOL (FDCaffeine)"), "Visible author credit", &count)
     for entry in school {
         for stance in ["Em pe", "Agachado", "Deitado"] {
             converted := LabConvertSchool(entry, stance, 16, 0.1, 3000, 12)

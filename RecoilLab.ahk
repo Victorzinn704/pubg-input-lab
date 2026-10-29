@@ -184,6 +184,8 @@ class RecoilLab {
         for binding in this.Hotkeys.Weapons
             Hotkey(binding.Chord, ObjBindMethod(this, "WeaponNameKey", binding.Profile, binding.Key))
         Hotkey("^!0", ObjBindMethod(this, "ToggleReticle"))
+        Hotkey("^.", ObjBindMethod(this, "CyclePresetKey", 1, "."))
+        Hotkey("^,", ObjBindMethod(this, "CyclePresetKey", -1, ","))
         Hotkey("F3", ObjBindMethod(this, "QuickKey", "gain_down", "F3"))
         Hotkey("F4", ObjBindMethod(this, "QuickKey", "gain_up", "F4"))
         Hotkey("F5", ObjBindMethod(this, "QuickKey", "save_gain", "F5"))
@@ -400,10 +402,42 @@ class RecoilLab {
             throw Error("Smoke: preferencia visual ou isolamento invalido.")
         if this.Engine.Armed || this.Engine.SessionStart != sessionStart
             throw Error("Smoke: biblioteca alterou armamento ou prazo.")
+        this.SmokePresetCycle()
         if A_Args.Length > 1 && A_Args[2] = "--capture-ui"
             LabCaptureWorkbench(bench, A_ScriptDir "\tests\artifacts")
         bench.Gui.Destroy()
         this.DeleteProp("Workbench")
+    }
+
+    SmokePresetCycle() {
+        sessionStart := this.Engine.SessionStart
+        pack := LabSchoolPresetPack(LabReadSchool(A_ScriptDir "\references\school\school_presets.ini"), this.Config.MaxStep)
+        this.ApplyLibrary(LabAddMissingPresets(this.Library, pack, this.Config.MaxStep), "M416")
+        m4Index := this.ProfileIndex
+        generation := this.Engine.Generation
+        if this.CyclePreset(1, false) || this.ProfileIndex != m4Index || this.Engine.Generation != generation
+            throw Error("Smoke: navegacao fora de foco alterou estado.")
+        this.SelectWeapon(m4Index, true)
+        now := this.Logger.NowMs()
+        this.Engine.Tick(now, true, false, true)
+        this.Engine.Tick(this.Logger.NowMs(), true, true, true)
+        oldEngine := this.Engine
+        generation := oldEngine.Generation
+        if !this.CyclePreset(1, true) || this.Engine.State != "wait_release" || oldEngine.Armed
+            throw Error("Smoke: troca durante rajada nao cancelou o motor antigo.")
+        profile := this.Config.Profiles[this.ProfileIndex]
+        if !InStr(profile.Label, "FDCaffeine") || !InStr(this.StatusLabel.Value, "SCHOOL/PE")
+            || this.Engine.Generation <= generation || this.Engine.SessionStart != sessionStart
+            throw Error("Smoke: troca perdeu credito, indicador, geracao ou prazo.")
+        if !this.CyclePreset(-1, true) || this.ProfileIndex != m4Index
+            throw Error("Smoke: anterior nao retornou ao ajuste original.")
+        this.SetEnabled(false)
+        this.ApplyLibrary(this.Library, "Mini14")
+        generation := this.Engine.Generation
+        if this.CyclePreset(1, true) || this.Engine.Armed || this.Engine.Generation != generation
+            throw Error("Smoke: arma sem variante foi ativada por navegacao vazia.")
+        this.ApplyLibrary(this.Library, "User_School_M416_1")
+        this.Workbench.RefreshCatalog("User_School_M416_1")
     }
 
     SelectedProfile() {
@@ -422,7 +456,7 @@ class RecoilLab {
         this.Gui.SetFont("s10", "Segoe UI")
         this.Gui.MarginX := 18
         this.Gui.MarginY := 14
-        this.Gui.AddText("w580", "PUBG Input Lab | Biblioteca e ensaios | versao 1.4.0")
+        this.Gui.AddText("w580", "PUBG Input Lab | Biblioteca e ensaios | versao 1.4.1")
         this.Gui.AddText("xm y+10 w580", "Alvo: " this.Config.TargetExe " | Gatilho: segurar os botoes esquerdo + direito")
         this.StateText := this.Gui.AddText("xm y+12 w580 h24", "DESARMADO")
         this.FeedbackText := this.Gui.AddText("xm y+2 w580 h20", "")
@@ -455,7 +489,7 @@ class RecoilLab {
         this.Gui.AddButton("x+12 w180", "Abrir configuracao").OnEvent("Click", ObjBindMethod(this, "OpenConfig"))
         this.Gui.AddText("xm y+14 w580", "Ctrl+Alt + letra da arma: selecionar e ativar | Ctrl+Alt+D: parar | F12: sair")
         this.Gui.AddText("xm y+8 w580", "Atalho de cada arma na lista acima. F3/F4 ajustam ganho; F5 salva. Ajustes desarmam.")
-        this.Gui.AddText("xm y+8 w580", "Ctrl+Alt+0: ponto central. Ao armar, solte o gatilho antes da proxima rajada.")
+        this.Gui.AddText("xm y+8 w580", "Ctrl+. / Ctrl+,: proximo/anterior preset da arma. Ctrl+Alt+0: ponto central.")
         this.SessionText := this.Gui.AddText("xm y+10 w580", "Sessao: " this.Logger.SessionId)
         this.Gui.OnEvent("Close", ObjBindMethod(this, "Quit"))
         this.Gui.OnEvent("Escape", ObjBindMethod(this, "ShowPanel"))
@@ -543,7 +577,7 @@ class RecoilLab {
         name := this.Config.Profiles[this.ProfileIndex].Name
         return this.Hotkeys.ByProfile.Has(name)
             ? "No jogo, " this.Hotkeys.ByProfile[name].Label " seleciona e ativa."
-            : "Este perfil nao tem atalho; configure hotkeys.ini ou use o painel."
+            : "Ctrl+. / Ctrl+, alternam os presets desta arma; atalhos diretos na biblioteca."
     }
 
     WeaponKey(profileIndex, key, *) {
@@ -558,6 +592,28 @@ class RecoilLab {
                 return
             }
         }
+    }
+
+    CyclePresetKey(direction, key, *) {
+        try this.CyclePreset(direction)
+        finally KeyWait(key)
+    }
+
+    CyclePreset(direction, focused := unset) {
+        if this.Failed || this.Closing
+            return false
+        focused := this.Smoke && IsSet(focused) ? focused : !!WinActive("ahk_exe " this.Config.TargetExe)
+        if !focused
+            return false
+        nextIndex := LabCyclePresetIndex(this.Config.Profiles, this.ProfileIndex, direction)
+        if nextIndex = this.ProfileIndex {
+            this.QuickFeedback("Esta arma/modo ainda nao tem outro preset. Selecione a arma pelo atalho ou painel.")
+            return false
+        }
+        if !this.SelectWeapon(nextIndex, focused)
+            return false
+        this.QuickFeedback(this.Config.Profiles[this.ProfileIndex].Label " | solte o gatilho para a proxima rajada.")
+        return true
     }
 
     SelectWeapon(profileIndex, focused := unset) {
@@ -702,12 +758,17 @@ class RecoilLab {
             compactState := "SIM " compactState
         active := this.Config.Profiles[this.ProfileIndex]
         displayName := active.HasOwnProp("Weapon") ? active.Weapon " " active.Optic : active.Name
-        status := compactState " | " displayName " | ganho " Format("{:.2f}", this.Gain)
+        school := active.HasOwnProp("Source") && InStr(active.Source, "SCHOOL@") = 1
+        if school {
+            stance := active.Stance = "Em pe" ? "PE" : (active.Stance = "Agachado" ? "AG" : "DEI")
+            displayName := active.Weapon " SCHOOL/" stance
+        }
+        status := compactState " | " displayName " | " (school ? "" : "ganho ") Format("{:.2f}", this.Gain)
         if this.Smoke {
             this.StatusLabel.Value := status
             return
         }
-        A_IconTip := "Recoil Lab: " label " | " this.SelectedProfile().Name " | " this.Gain
+        A_IconTip := "Recoil Lab: " label " | " active.Label " | " this.Gain
         target := this.Closing ? 0 : WinActive("ahk_exe " this.Config.TargetExe)
         this.Overlay.Update(target, status, this.Failed || zeroInput ? "FFD166" : (this.Engine.Armed ? "83E3B0" : "D9E2EC"))
         this.Reticle.Update(target, this.Preferences.ReticleEnabled, this.Preferences.ReticleSize, this.Preferences.ReticleColor)
