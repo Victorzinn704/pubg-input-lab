@@ -11,6 +11,10 @@
 | `lib/TrialLogger.ahk` | Eventos, snapshots, relógio monotônico e integridade das evidências |
 | `lib/LabInstance.ahk` | Exclusão mútua entre instalações e comunicação com o painel existente |
 | `lib/LabStatusOverlay.ahk` | Indicador, estabilidade da geometria e visibilidade |
+| `lib/LabPresets.ahk` | Esquema versionado, validação, persistência, importação e conversão de referências |
+| `lib/LabPresetWorkbench.ahk` | Editor de contexto, segmentos, biblioteca e associações |
+| `lib/LabCurvePreview.ahk` | Prévia nativa de curvas; sem entrada no sistema |
+| `lib/LabReticle.ahk` | Ponto central opcional; geometria estável, sem foco ou cliques |
 | `Analisar-Sessao.ps1` | Análise posterior dos eventos; independente do envio |
 
 ## Invariantes de execução
@@ -30,7 +34,17 @@
 
 Um novo perfil usa uma seção `[Profile:Nome]` em `profiles.ini`, com modo, intervalo e segmentos. Adicione `Nome=Letra` em `[Weapons]` de `hotkeys.ini`. O parser rejeita referências desconhecidas e letras repetidas. D permanece reservada.
 
-Reinicie o aplicativo depois de editar os arquivos de configuração. Não existe recarga automática de arquivo durante uma rajada. Os comandos de ajuste do painel persistem pelo fluxo de gravação validado.
+Reinicie o aplicativo depois de editar os arquivos externamente. O editor valida e aplica biblioteca/atalhos imediatamente, sempre desarmando primeiro. Não existe recarga automática de arquivo durante uma rajada. Os comandos de ajuste do painel persistem pelo fluxo de gravação validado.
+
+## Biblioteca contextual
+
+`presets.local.ini` usa esquema 1. O parser rejeita seções/chaves duplicadas, referências desconhecidas de formato e valores fora dos limites. Gravações são preparadas em arquivo temporário no mesmo diretório, validadas novamente, mantêm `.bak` e substituem o destino após sucesso. As bibliotecas importadas nunca sobrescrevem IDs existentes: colisões geram novas identidades.
+
+Os perfis base são carregados com suas calibrações 1.3.0 e depois combinados com a biblioteca. Salvar um perfil base no editor cria uma cópia; não migra ou reescreve os arquivos antigos. Contexto é parte do preset, não uma heurística de reconhecimento. Cada combinação pode ter sua própria curva e ganho.
+
+Trocas de biblioteca preservam o início da sessão e invalidam a geração anterior. Callbacks de atalhos resolvem nomes no catálogo atual, evitando índices obsoletos após exclusões. Reconfigurar atalhos valida todos os nomes/teclas antes de registrar; falhas restauram as associações anteriores. A parada global não participa dessa substituição.
+
+Excluir um preset ainda associado é recusado. O painel simples recusa converter uma curva composta em constante. F5 persiste um preset da biblioteca pelo mesmo esquema, preservando curva e contexto. Snapshots de biblioteca acompanham os eventos locais de gravação.
 
 O arquivo de calibrações é separado dos exemplos versionados. Uma atualização de código preserva os arquivos locais. Uma instalação nova usa simulação e não importa os ajustes de outro usuário.
 

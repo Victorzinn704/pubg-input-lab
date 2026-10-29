@@ -4,9 +4,17 @@ Laboratório independente de perfis de movimento em AutoHotkey v2 para Windows. 
 
 Os perfis de arma distribuídos são referências **sem calibração de recoil**. Armar um perfil com X/Y iguais a zero não produz compensação. Ajustes pessoais ficam no computador; o projeto não promete spray perfeito, indetectabilidade ou aprovação do PUBG/KRAFTON.
 
+## Biblioteca 1.4.0
+
+O painel inclui uma biblioteca para criar, duplicar, renomear e excluir presets; registrar arma, mira/zoom, postura, acessórios e sensibilidade; editar curvas X/Y com prévia; importar/exportar INI; e editar atalhos sem reiniciar. O ponto central é opcional, desativado por padrão e limitado à janela alvo com foco.
+
+Há também **26 referências SCHOOL**, com licença MIT e origem preservadas. A conversão gera um rascunho com hipótese temporal e escala explícitas; os valores permanecem não validados. Os perfis originais e as calibrações pessoais não são sobrescritos. Consulte o [guia de presets](docs/PRESETS.md) e os [avisos de terceiros](THIRD_PARTY_NOTICES.md).
+
 ## Instalação e validação
 
 Requisitos: Windows x64, PowerShell 5.1 ou superior e acesso HTTPS para baixar o runtime oficial. Na pasta do projeto:
+
+O pacote portátil em [Releases](https://github.com/Victorzinn704/pubg-input-lab/releases) inclui o runtime oficial e sua licença: extraia a pasta e execute `Iniciar.cmd`. Para trabalhar a partir do código-fonte:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\Setup-Runtime.ps1
@@ -40,7 +48,7 @@ Com o jogo em foco, **Ctrl+Alt+letra seleciona e ativa o perfil**. Trocar de arm
 | Ctrl+Alt+H | SKS |
 | **Ctrl+Alt+D** | **Desligar o perfil ativo, mesmo fora do jogo** |
 
-As letras podem ser alteradas em `hotkeys.ini`, seção `[Weapons]`, por exemplo `M416=A`. D é reservada à parada. Letras duplicadas, perfis desconhecidos e entradas inválidas são rejeitados. Alterações nesse arquivo entram em vigor ao reiniciar o aplicativo.
+As associações podem ser editadas em **Biblioteca → Atalhos e tela**, com aplicação imediata. São aceitas letras A–Z e números 1–9. D é reservada à parada e Ctrl+Alt+0 alterna o ponto central. Conflitos, perfis desconhecidos e entradas inválidas são rejeitados. Edição externa de `hotkeys.ini`, seção `[Weapons]` (exemplo `M416=A`), exige reiniciar.
 
 F3/F4 ajustam o ganho, F5 salva, F6 abre o painel, F9 marca um evento e F10 executa a sonda de diagnóstico com o botão direito pressionado. F12 encerra o aplicativo. F1/F2/F7/F8/F11 deixam de controlar seleção/ativação. Mouse4 e Mouse5 mantêm suas funções.
 
@@ -57,6 +65,10 @@ A tarja permanece em uma linha de 280×26 no canto do jogo, sem receber foco ou 
 | `profiles.ini` | Perfis, alvo e modo locais | Não |
 | `hotkeys.ini` | Teclas locais | Não |
 | `calibrations.ini` | Ganhos e segmentos salvos pelo usuário | Não |
+| `presets.local.ini` | Biblioteca contextual e curvas completas | Não |
+| `display.local.ini` | Preferências visuais | Não |
+| `*.ini.bak` | Revisão anterior de arquivos editados | Não |
+| `references/school/` | 26 referências externas, origem e licença MIT | Sim |
 | `logs/`, `tests/artifacts/` | Evidências e arquivos gerados | Não |
 
 Não publique logs brutos: as sessões podem conter nomes de máquina, caminhos e configurações pessoais. O runtime também não é armazenado no Git. O script de preparo não sobrescreve configurações existentes.
