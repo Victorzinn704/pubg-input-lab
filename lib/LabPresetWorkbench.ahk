@@ -1,5 +1,6 @@
-#Include LabPresets.ahk
+﻿#Include LabPresets.ahk
 #Include LabCurvePreview.ahk
+#Include LabProfileTools.ahk
 
 ; Intent: compare a saved experiment and its context before selecting it.
 ; Native controls, 8px spacing, white plot, blue X / green Y, amber feedback.
@@ -15,8 +16,11 @@ class LabPresetWorkbench {
         this.Gui.SetFont("s" (10 * 96 / A_ScreenDPI), "Segoe UI")
         this.Gui.BackColor := "F3F5F7"
         this.Gui.AddText("x16 y12 w900 h24", "Biblioteca  /  contexto + curva + atalho")
-        this.Gui.AddText("x16 y40 w220 h20", "Perfis salvos")
-        this.Catalog := this.Gui.AddListBox("x16 y64 w220 h420")
+        this.Gui.AddText("x16 y40 w220 h20", "Buscar arma / mira / nome")
+        this.Search := this.Gui.AddEdit("x16 y64 w220 h26")
+        this.Search.OnEvent("Change", ObjBindMethod(this, "FilterCatalog"))
+        this.CatalogCount := this.Gui.AddText("x16 y96 w220 h20 c526273", "")
+        this.Catalog := this.Gui.AddListBox("x16 y120 w220 h364")
         this.Catalog.OnEvent("Change", ObjBindMethod(this, "Choose"))
         this.Gui.AddButton("x16 y492 w68 h28", "Novo").OnEvent("Click", ObjBindMethod(this, "New"))
         this.Gui.AddButton("x88 y492 w76 h28", "Duplicar").OnEvent("Click", ObjBindMethod(this, "Duplicate"))
@@ -33,7 +37,7 @@ class LabPresetWorkbench {
         this.GainEdit := this.Field("Ganho", 272, 308, 96)
         this.IntervalEdit := this.Field("Intervalo (ms)", 384, 308, 120)
         this.TriggerEdit := this.Field("Disparo", 520, 308, 184, ["Automatico", "Tiro unico"], true)
-        this.MotionEdit := this.Field("Temporizacao", 720, 308, 192, ["Por tempo", "Por passo"], true)
+        this.MotionEdit := this.Field("Temporizacao", 720, 308, 192, ["Tempo limitado (legado)", "Por passo", "Tempo acumulado"], true)
         this.MinTriggerEdit := this.Field("Minimo entre cliques (ms)", 272, 364, 200)
         this.SourceText := this.Gui.AddEdit("x488 y380 w424 h76 ReadOnly")
         this.Gui.AddText("x272 y464 w640 h38", "Contexto selecionado manualmente. Alterar mira/postura identifica outra configuracao; nao aplica um multiplicador universal.")
@@ -49,8 +53,9 @@ class LabPresetWorkbench {
         this.Gui.AddButton("x632 y256 w88 h28", "Adicionar").OnEvent("Click", ObjBindMethod(this, "CurveAction", "add"))
         this.Gui.AddButton("x728 y256 w88 h28", "Alterar").OnEvent("Click", ObjBindMethod(this, "CurveAction", "edit"))
         this.Gui.AddButton("x824 y256 w88 h28", "Remover").OnEvent("Click", ObjBindMethod(this, "CurveAction", "delete"))
-        this.Preview := this.Gui.AddPicture("x272 y300 w640 h150")
-        this.CurveInfo := this.Gui.AddText("x272 y460 w640 h44", "X azul / Y verde. Deslocamento por intervalo; eixo horizontal = tempo. A previa nao representa o spray observado no jogo.")
+        this.Preview := this.Gui.AddPicture("x272 y300 w640 h140")
+        this.CurveInfo := this.Gui.AddText("x272 y446 w640 h38", "")
+        this.Gui.AddButton("x272 y488 w280 h24", "Criar curva por disparo...").OnEvent("Click", ObjBindMethod(this, "OpenShotTable"))
         this.Tabs.UseTab(3)
         this.Gui.AddText("x272 y84 w640 h42", "Ctrl+Alt+D permanece reservado para parar. Uma letra seleciona e ativa um perfil salvo. Troque a associacao para usar uma variante de mira/postura.")
         this.KeyList := this.Gui.AddListView("x272 y132 w640 h160 -Multi NoSortHdr", ["Perfil", "Ctrl+Alt+letra"])
@@ -75,12 +80,12 @@ class LabPresetWorkbench {
         this.SchoolScale := this.Field("Escala de importacao", 488, 212, 200)
         this.SchoolDuration := this.Field("Duracao (ms)", 704, 212, 208)
         this.SchoolInterval.Value := "16"
-        this.SchoolScale.Value := "0.1"
-        this.SchoolDuration.Value := "3000"
+        this.SchoolScale.Value := ""
+        this.SchoolDuration.Value := this.App.Config.MaxBurstMs
         this.SchoolWeapon.Choose(1)
         this.SchoolStance.Choose(1)
         this.Gui.AddButton("x272 y284 w280 h32", "Converter em rascunho").OnEvent("Click", ObjBindMethod(this, "ConvertSchool"))
-        this.Gui.AddText("x272 y340 w640 h120", "A conversao reconstrói a progressao vertical e registra intervalo assumido e escala. 16 ms e 0.1 sao hipoteses editaveis, nao valores medidos.`n`nRevise a curva e o contexto antes de salvar. Valores acima do limite sao rejeitados. A biblioteca original e sua licenca acompanham o projeto.")
+        this.Gui.AddText("x272 y340 w640 h152", "Informe a escala: 1 = amplitude de referencia; 0.1 = 10%.`nO pacote instalado usa 10% e 3 s. Isso nao reproduz o executavel SCHOOL.`n`n16 ms e uma hipotese, nao uma medicao. Uma escala maior pode ultrapassar os limites e sera recusada, sem cortar valores silenciosamente.`n`nA conversao cria um rascunho com origem e hipoteses. Seus presets salvos permanecem preservados.")
         this.Tabs.UseTab()
         this.Notice := this.Gui.AddText("x16 y532 w920 h36 c815C12", "")
         this.Gui.AddButton("x16 y576 w104 h32", "Importar INI").OnEvent("Click", ObjBindMethod(this, "Import"))
@@ -134,26 +139,40 @@ class LabPresetWorkbench {
             if profile.Name = selected
                 selectedIndex := index
         }
-        this.Catalog.Delete()
-        this.Catalog.Add(labels)
-        this.Catalog.Choose(selectedIndex)
         this.KeyProfile.Delete()
         this.KeyProfile.Add(labels)
         this.KeyProfile.Choose(selectedIndex)
         this.RefreshKeys()
         this.Load(this.App.Config.Profiles[selectedIndex])
+        this.FilterCatalog()
+    }
+
+    FilterCatalog(*) {
+        this.CatalogIndexes := LabProfileSearch(this.App.Config.Profiles, this.Search.Value)
+        this.Catalog.Delete()
+        labels := []
+        chosen := 0
+        for row, index in this.CatalogIndexes {
+            profile := this.App.Config.Profiles[index]
+            labels.Push(profile.Label)
+            if profile.Name = this.Draft.Name
+                chosen := row
+        }
+        if labels.Length
+            this.Catalog.Add(labels)
+        if chosen
+            this.Catalog.Choose(chosen)
+        this.CatalogCount.Value := labels.Length " resultados | arma, mira ou nome"
     }
 
     Choose(*) {
+        if !this.Catalog.Value
+            return
         if !this.AllowDiscard() {
-            for index, profile in this.App.Config.Profiles {
-                if profile.Name = this.Draft.Name
-                    this.Catalog.Choose(index)
-            }
+            this.FilterCatalog()
             return
         }
-        if this.Catalog.Value
-            this.Load(this.App.Config.Profiles[this.Catalog.Value])
+        this.Load(this.App.Config.Profiles[this.CatalogIndexes[this.Catalog.Value]])
     }
 
     Load(profile) {
@@ -170,7 +189,7 @@ class LabPresetWorkbench {
             this.GainEdit.Value := this.Draft.SavedGain
             this.IntervalEdit.Value := this.Draft.IntervalMs
             this.TriggerEdit.Choose(this.Draft.TriggerMode = "continuous" ? 1 : 2)
-            this.MotionEdit.Choose(this.Draft.MotionMode = "elapsed" ? 1 : 2)
+            this.MotionEdit.Choose(this.Draft.MotionMode = "timeline" ? 3 : this.Draft.MotionMode = "elapsed" ? 1 : 2)
             this.MinTriggerEdit.Value := this.Draft.MinTriggerMs
             this.SourceText.Value := (this.Draft.RecoilStatus = "external_unvalidated" ? "Referencia externa - nao validada"
                 : "Ajuste de ensaio - nao validado") "`r`nOrigem: " this.Draft.Source
@@ -196,7 +215,7 @@ class LabPresetWorkbench {
         profile.SavedGain := LabNumber(this.GainEdit.Value, "Ganho", 0.1, 5)
         profile.IntervalMs := LabNumber(this.IntervalEdit.Value, "Intervalo", 10, 1000, true)
         profile.TriggerMode := this.TriggerEdit.Value = 1 ? "continuous" : "single"
-        profile.MotionMode := this.MotionEdit.Value = 1 ? "elapsed" : "step"
+        profile.MotionMode := this.MotionEdit.Value = 3 ? "timeline" : this.MotionEdit.Value = 1 ? "elapsed" : "step"
         profile.MinTriggerMs := LabNumber(this.MinTriggerEdit.Value, "Minimo entre cliques", 0, 1000, true)
         if SubStr(profile.Name, 1, 5) != "User_" {
             profile.Name := "User_" LabQpcTicks()
@@ -293,12 +312,12 @@ class LabPresetWorkbench {
         this.CurveList.Delete()
         for segment in this.Draft.Segments
             this.CurveList.Add(, segment.UntilMs, Format("{:g}", segment.Dx), Format("{:g}", segment.Dy))
-        this.Preview.Value := "HBITMAP:" LabCurveBitmap(this.Draft, 640, 150)
+        this.Preview.Value := "HBITMAP:" LabCurveBitmap(this.Draft, 640, 140)
         this.EndEdit.Value := this.Draft.Segments[-1].UntilMs
         this.XEdit.Value := Format("{:g}", this.Draft.Segments[-1].Dx)
         this.YEdit.Value := Format("{:g}", this.Draft.Segments[-1].Dy)
         this.CurveInfo.Value := "X azul / Y verde | duracao " this.Draft.Segments[-1].UntilMs " ms | ganho " Format("{:g}", this.Draft.SavedGain)
-            . "`nDeslocamento por intervalo. Escala vertical automatica; esta previa nao mede o spray no jogo."
+            . "`nContagens por intervalo. Escala vertical automatica; previa nao mede o spray."
     }
 
     CurveSelected(control, item, selected) {
@@ -397,6 +416,39 @@ class LabPresetWorkbench {
             this.Notice.Value := "Ponto salvo. Visivel somente com o jogo em foco e geometria estavel."
         } catch as err {
             this.Notice.Value := err.Message
+        }
+    }
+
+    OpenShotTable(*) {
+        if !this.AllowDiscard()
+            return
+        if this.HasOwnProp("ShotGui")
+            this.ShotGui.Destroy()
+        this.ShotGui := Gui("+Owner" this.Gui.Hwnd, "Curva por disparo")
+        this.ShotGui.SetFont("s10", "Segoe UI")
+        this.ShotGui.AddText("w480", "Informe uma tabela medida: ultima bala, X por tiro, Y por tiro.`nExemplo de formato: 10,0,2 (ate a bala 10). Valores em contagens do mouse.")
+        this.ShotGui.AddText("xm y+16", "Intervalo entre tiros (ms)")
+        this.ShotInterval := this.ShotGui.AddEdit("xm y+4 w100", this.Draft.FireIntervalMs ? this.Draft.FireIntervalMs : "")
+        this.ShotRows := this.ShotGui.AddEdit("xm y+16 w480 h160 WantTab", "")
+        this.ShotNotice := this.ShotGui.AddText("xm y+8 w480 h52 c815C12", "A conversao distribui cada incremento no intervalo informado. Nao detecta tiros nem mede recoil.")
+        this.ShotGui.AddButton("xm y+12 w220 h32", "Criar rascunho").OnEvent("Click", ObjBindMethod(this, "ConvertShotTable"))
+        this.ShotGui.OnEvent("Close", (*) => this.ShotGui.Hide())
+        this.ShotGui.OnEvent("Escape", (*) => this.ShotGui.Hide())
+        this.ShotGui.Show(this.App.Smoke ? "Hide" : "")
+    }
+
+    ConvertShotTable(*) {
+        try {
+            converted := LabFromShotTable(this.ReadDraft(false), this.ShotRows.Value,
+                this.ShotInterval.Value, this.App.Config.MaxStep)
+            converted.Label := SubStr(this.NameEdit.Value, 1, 125) " / por disparo"
+            this.Load(converted)
+            this.Dirty := true
+            this.Tabs.Choose(2)
+            this.ShotGui.Hide()
+            this.Notice.Value := "Curva por tempo acumulado criada. Revise e salve antes de usar."
+        } catch as err {
+            this.ShotNotice.Value := err.Message
         }
     }
 

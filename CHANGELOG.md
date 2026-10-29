@@ -1,5 +1,16 @@
 # Histórico de alterações
 
+## 1.5.0 — 2026-10-29
+
+- Painel organizado em Usar, Ajustar e Diagnóstico, com seleção por arma/variante e busca na biblioteca.
+- Última seleção e preferência por arma/modo persistidas; atalhos base resolvem a variante preferida ou uma referência com movimento. Atalhos diretos da biblioteca continuam exatos.
+- Perfis vazios recusam ativação real; navegação real pula variantes sem movimento.
+- Novo modo opcional `timeline`: integração do tempo acumulado com resíduos fracionários, parada por atraso/amplitude e sem fila de recuperação. Cópia por tempo disponível em um botão.
+- Conversor explícito de tabela por disparo para curva temporal; mantém unidades, contexto e validação.
+- Escala e duração SCHOOL visíveis; novas conversões exigem escala informada. Presets antigos preservados.
+- Validação ampliada com testes de temporização irregular, limites, persistência, resolução de variantes, busca e conversão; revisão visual das interfaces.
+- Sem calibração automática, reconhecimento de inimigos ou comprovação de eficácia no jogo.
+
 ## 1.4.1 — 2026-10-28
 
 - 78 presets SCHOOL (FDCaffeine) prontos para seleção: 26 armas e três posturas, com origem e hipóteses de conversão preservadas.

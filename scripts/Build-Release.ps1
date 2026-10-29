@@ -1,6 +1,6 @@
 #Requires -Version 5.1
 [CmdletBinding()]
-param([string]$Version = '1.4.1')
+param([string]$Version = '1.5.0')
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
@@ -18,10 +18,10 @@ $sourceArchive = Join-Path $buildRoot 'source.zip'
 git -C $projectRoot archive --format=zip --output=$sourceArchive HEAD
 if ($LASTEXITCODE -ne 0) { throw 'Source archive failed.' }
 Expand-Archive -LiteralPath $sourceArchive -DestinationPath $staging
-$entrypoint = Get-Content -LiteralPath (Join-Path $staging 'RecoilLab.ahk') -Raw
+$entrypoint = Get-Content -LiteralPath (Join-Path $staging 'lib\LabMainPanel.ahk') -Raw
 if (-not $entrypoint.Contains('versao ' + $Version)) { throw 'Version differs from the committed application.' }
-& (Join-Path $staging 'scripts\Setup-Runtime.ps1')
-foreach ($privateFile in @('profiles.ini', 'calibrations.ini', 'hotkeys.ini', 'presets.local.ini', 'display.local.ini', 'logs')) {
+& (Join-Path $staging 'scripts\Setup-Runtime.ps1') | Out-Host
+foreach ($privateFile in @('profiles.ini', 'calibrations.ini', 'hotkeys.ini', 'presets.local.ini', 'display.local.ini', 'selection.local.ini', 'logs')) {
     if (Test-Path -LiteralPath (Join-Path $staging $privateFile)) { throw "Private data found in package: $privateFile" }
 }
 if (-not (Test-Path -LiteralPath (Join-Path $staging 'runtime\LICENSE.txt'))) { throw 'Runtime license missing.' }

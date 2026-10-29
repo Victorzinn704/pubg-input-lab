@@ -1,10 +1,12 @@
-# Biblioteca de presets — 1.4.1
+# Biblioteca de presets — 1.5.0
 
-Abra **Biblioteca: presets, contexto, curvas e atalhos** no painel. Abrir a biblioteca desarma o perfil. Salvar ou escolher um preset não dispara nem ativa movimento; a ativação continua pelo atalho da arma ou pelo painel.
+Abra **Usar → Editar na biblioteca** no painel. Busque por arma, mira, postura ou nome no campo à esquerda. Abrir a biblioteca desarma o perfil. Salvar ou escolher um preset não dispara nem ativa movimento; a ativação continua pelo atalho da arma ou pelo painel.
 
 ## Alternar durante o jogo
 
-Selecione a arma normalmente, por exemplo Ctrl+Alt+A para M416. **Ctrl+.** seleciona e ativa o próximo preset dessa arma; **Ctrl+,** volta ao anterior. A lista é circular: ajuste original → SCHOOL em pé → SCHOOL agachado → SCHOOL deitado → ajuste original. Outros presets pessoais da mesma arma/modo também participam, na ordem da biblioteca.
+Selecione a arma normalmente, por exemplo Ctrl+Alt+A para M416. **Ctrl+.** seleciona e ativa o próximo preset dessa arma; **Ctrl+,** volta ao anterior. A lista é circular entre as variantes da mesma arma/modo. Em entrada real, perfis vazios são pulados; em simulação, também podem ser selecionados. Outros presets pessoais da mesma arma/modo também participam, na ordem da biblioteca.
+
+Atalhos de arma base lembram a variante com movimento escolhida, inclusive entre reinicializações. Sem preferência, um original vazio resolve para a primeira variante compatível com movimento. Atalhos associados diretamente a presets `User_` permanecem exatos. Excluir uma variante preferida faz a resolução voltar a uma alternativa válida; referências de outra arma/modo são ignoradas.
 
 A comparação usa nomes equivalentes (Beryl M762/BerylM762, SCAR-L/SCARL, Tommy Gun/Thompson etc.) e preserva o modo de disparo. Mk14 tiro único não é misturado ao Mk14 automático. Se não houver outra variante, a navegação não altera nem ativa o perfil. Fora do jogo esses atalhos não são capturados. Solte o gatilho após trocar; a troca não produz movimento por si só.
 
@@ -28,13 +30,21 @@ Os perfis originais de `profiles.ini` e `calibrations.ini` permanecem protegidos
 
 O gráfico usa azul para X e verde para Y, tempo no eixo horizontal e escala vertical automática. A tabela contém os valores exatos editáveis; a apresentação numérica usa seis algarismos significativos. O gráfico aplica o ganho salvo no rascunho, não representa impactos medidos nem a trajetória observada no jogo. Alterações de ganho são refletidas após salvar ou aplicar uma edição na curva.
 
-**Por tempo** distribui a taxa pelo tempo decorrido; **Por passo** produz movimentos nos intervalos programados, sujeitos ao temporizador. Tiro único exige **Por passo** e valores inteiros. Intervalo entre cliques é uma proteção para tiro único, não um gerador de disparos.
+**Tempo acumulado** (`timeline`) integra toda a taxa entre duas amostras dentro dos limites, inclusive quando o intervalo real oscila. Não produz pulso inicial nem recupera uma fila após travamentos. Uma amostra que ultrapassaria o movimento máximo por chamada encerra a rajada com `rate_limit`; atraso excessivo encerra com `scheduler_late`. A soltura do gatilho continua obrigatória para retomar. O prazo da rajada pode descartar a última fração de intervalo.
+
+**Tempo limitado (legado)** (`elapsed`) mantém o comportamento anterior, que descarta o tempo além do intervalo nominal. **Por passo** (`step`) produz movimentos nos intervalos programados, sujeitos ao temporizador. Alterar a temporização pode mudar a resposta; use uma cópia para comparar.
+
+**Ajustar → Criar variante por tempo**, no painel principal, faz essa cópia preservando valores, ganho, crédito e contexto. A cópia é selecionada e salva, mas permanece desarmada.
+
+**Criar curva por disparo**, na aba Curva X/Y, recebe linhas `ultima_bala,X,Y` e o intervalo entre tiros. X/Y são contagens do mouse por disparo, não pixels medidos da tela. Cada linha define o incremento por tiro até a última bala informada. A conversão distribui esse incremento no intervalo, mantendo a área nominal da curva. Ela gera um rascunho contínuo em `timeline`, com ganho 1, e recusa tabelas inválidas, curvas acima de 10 segundos ou taxas além dos limites.
+
+ Tiro único exige **Por passo** e valores inteiros. Intervalo entre cliques é uma proteção para tiro único, não um gerador de disparos.
 
 ## Importar, exportar e referências
 
 **Exportar INI** salva o preset selecionado com contexto, origem, ganho e curva. **Importar INI** aceita bibliotecas no esquema 1. IDs repetidos recebem uma nova identidade; nenhum preset existente é sobrescrito pela importação. Arquivos inválidos são rejeitados antes da gravação. Configurações podem conter informações pessoais digitadas pelo usuário; revise antes de compartilhar.
 
-A aba **Referências SCHOOL** contém 26 armas e três posturas. A conversão pede intervalo assumido, escala e duração, mostra a curva como rascunho e registra as hipóteses. Ela não sobrescreve sua calibração. Consulte o [modelo e a licença](../references/school/README.md).
+A aba **Referências SCHOOL** contém 26 armas e três posturas. A conversão pede intervalo assumido, escala e duração, mostra a curva como rascunho e registra as hipóteses. O campo de escala começa vazio para exigir uma escolha explícita: 1 significa amplitude de referência, 0,1 significa 10%. A duração inicial acompanha o limite local da rajada. Os 78 presets já distribuídos permanecem como referências de 10%/16 ms/3 s, com essas condições visíveis no painel; não são atualizados silenciosamente. Ela não sobrescreve sua calibração. Consulte o [modelo e a licença](../references/school/README.md).
 
 ## Atalhos e ponto central
 
@@ -55,6 +65,7 @@ Mudanças de atalho feitas pelo editor são aplicadas imediatamente e desarmam o
 | `presets.local.ini.bak` | Revisão anterior à última gravação |
 | `hotkeys.ini` / `.bak` | Associações e revisão anterior |
 | `display.local.ini` / `.bak` | Preferências do ponto central |
+| `selection.local.ini` / `.bak` | Última seleção e preferência por arma/modo |
 
 Esses arquivos não são versionados. Feche o aplicativo antes de restaurar uma cópia `.bak`. Copie o backup sobre o arquivo correspondente e reabra. A validação continua ativa; uma versão de esquema desconhecida não é reinterpretada silenciosamente.
 

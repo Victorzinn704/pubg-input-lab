@@ -2,13 +2,23 @@
 
 Laboratório independente de perfis de movimento em AutoHotkey v2 para Windows. Inclui seleção de arma por atalho, simulação sem enviar movimento, máquina de estados testável e registros locais de execução. A interface mantém o nome **Recoil Lab**.
 
-Os perfis de arma distribuídos são referências **sem calibração de recoil**. Armar um perfil com X/Y iguais a zero não produz compensação. Ajustes pessoais ficam no computador; o projeto não promete spray perfeito, indetectabilidade ou aprovação do PUBG/KRAFTON.
+Os perfis de arma distribuídos são referências **sem calibração de recoil**. Perfis com X/Y iguais a zero não podem ser ativados no modo de entrada real; continuam disponíveis em simulação. Ajustes pessoais ficam no computador; o projeto não promete spray perfeito, indetectabilidade ou aprovação do PUBG/KRAFTON.
 
-## Biblioteca 1.4.1
+## Fluxo 1.5.0
+
+O painel separa **Usar**, **Ajustar** e **Diagnóstico**. Em **Usar**, escolha a arma e depois a variante; o resumo informa duração efetiva, contexto, temporização e hipóteses da referência. A biblioteca tem busca por nome, arma, mira e postura.
+
+Atalhos associados a um perfil base de arma usam a última variante com movimento escolhida para aquela arma/modo. Sem preferência, mantêm o ajuste base quando ele tem movimento; caso contrário, selecionam a primeira variante compatível com movimento. Associações diretas a IDs `User_` continuam exatas. A seleção fica em `selection.local.ini`; reabrir restaura o perfil, sempre desarmado.
+
+**Ajustar → Criar variante por tempo** salva uma cópia com a mesma curva, contexto e ganho usando o novo modo `timeline`. O original fica preservado para comparação por Ctrl+. / Ctrl+,. O novo modo integra intervalos reais entre amostras; atrasos longos ou movimentos acima do limite interrompem a rajada, sem fila de recuperação. É uma opção de temporização, não uma calibração automática.
+
+Na biblioteca, **Curva X/Y → Criar curva por disparo** converte uma tabela fornecida pelo usuário em taxas equivalentes por tempo. Nenhum número de recoil é inventado pelo conversor. A [avaliação técnica](docs/REVIEW-1.5.0.md) registra as referências e o escopo adotado.
+
+## Biblioteca
 
 O painel inclui uma biblioteca para criar, duplicar, renomear e excluir presets; registrar arma, mira/zoom, postura, acessórios e sensibilidade; editar curvas X/Y com prévia; importar/exportar INI; e editar atalhos sem reiniciar. O ponto central é opcional, desativado por padrão e limitado à janela alvo com foco.
 
-Há também **78 presets SCHOOL (FDCaffeine): 26 armas × 3 posturas**, com licença MIT e origem preservadas. Instalações novas já incluem esses presets. **Ctrl+.** avança e **Ctrl+,** volta entre os presets da mesma arma e modo de disparo, incluindo o ajuste original. A navegação é circular e seleciona/ativa o preset com o jogo em foco; solte o gatilho antes da nova rajada.
+Há também **78 presets SCHOOL (FDCaffeine): 26 armas × 3 posturas**, com licença MIT e origem preservadas. Instalações novas já incluem esses presets. **Ctrl+.** avança e **Ctrl+,** volta entre os presets da mesma arma e modo de disparo, incluindo o ajuste original. A navegação é circular e seleciona/ativa o preset com o jogo em foco; no modo real pula variantes vazias; solte o gatilho antes da nova rajada.
 
 Os presets usam a conversão documentada de 16 ms, escala 0,1 e duração de 3 s; continuam não validados. São configurações do laboratório, não alterações nas opções de sensibilidade do PUBG. Seus ajustes pessoais são preservados. Para acrescentar as referências a uma biblioteca existente, feche o aplicativo e execute `Importar-SCHOOL.cmd`; repetições não duplicam nem substituem IDs existentes. Consulte o [guia de presets](docs/PRESETS.md) e os [avisos de terceiros](THIRD_PARTY_NOTICES.md).
 
@@ -29,7 +39,7 @@ O instalador fixa AutoHotkey 2.0.30 e verifica o SHA-256 publicado pelo projeto 
 
 ## Comandos
 
-Com o jogo em foco, **Ctrl+Alt+letra seleciona e ativa o perfil**. Trocar de arma encerra a rajada anterior e mantém apenas um perfil ativo. Repetir o atalho da mesma arma ligada preserva seu estado e ganho atual. Rearmar a mesma arma depois de ajustar também mantém o ganho aplicado; mudar para outra arma carrega o ganho salvo dela.
+Com o jogo em foco, **Ctrl+Alt+letra seleciona e ativa a variante da arma**, conforme a preferência salva ou a associação direta. Trocar de arma encerra a rajada anterior e mantém apenas um perfil ativo. Repetir o atalho da mesma arma ligada preserva seu estado e ganho atual. Rearmar a mesma arma depois de ajustar também mantém o ganho aplicado; mudar para outra arma carrega o ganho salvo dela.
 
 | Atalho | Perfil |
 | --- | --- |
@@ -56,7 +66,7 @@ F3/F4 ajustam o ganho, F5 salva, F6 abre o painel, F9 marca um evento e F10 exec
 
 Alterar configurações ou abrir o painel desarma o ensaio. Use novamente o atalho da arma depois de ajustar. Após ativar ou trocar o perfil, solte o disparo antes da próxima rajada; o botão de mira pode continuar pressionado. No modo de entrada real, o envio exige foco no alvo e ambos os botões físicos. Perda de foco pausa o envio; a volta exige nova soltura do gatilho. Trocar arma não reinicia o prazo da sessão.
 
-A tarja permanece em uma linha de 280×26 no canto do jogo, sem receber foco ou cliques. Detalhes e mensagens ficam no painel. `SEM AJUSTE` identifica um perfil sem movimento no modo real. A indicação `ARMADO` descreve o estado do programa, não confirma eficácia dentro do jogo.
+A tarja permanece em uma linha de 280×26 no canto do jogo, sem receber foco ou cliques. Detalhes e mensagens ficam no painel. Uma tentativa de ativar um perfil sem movimento no modo real é recusada com mensagem; o painel identifica a curva vazia. A indicação `ARMADO` descreve o estado do programa, não confirma eficácia dentro do jogo.
 
 ## Configurações e privacidade
 
@@ -70,6 +80,7 @@ A tarja permanece em uma linha de 280×26 no canto do jogo, sem receber foco ou 
 | `calibrations.ini` | Ganhos e segmentos salvos pelo usuário | Não |
 | `presets.local.ini` | Biblioteca contextual e curvas completas | Não |
 | `display.local.ini` | Preferências visuais | Não |
+| `selection.local.ini` | Último perfil e variantes preferidas por arma/modo | Não |
 | `*.ini.bak` | Revisão anterior de arquivos editados | Não |
 | `references/school/` | 26 referências externas, origem e licença MIT | Sim |
 | `logs/`, `tests/artifacts/` | Evidências e arquivos gerados | Não |

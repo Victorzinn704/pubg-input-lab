@@ -40,7 +40,7 @@ LabValidatePreset(profile, maxStep) {
         throw Error("Postura invalida.")
     if profile.TriggerMode != "continuous" && profile.TriggerMode != "single"
         throw Error("Modo de disparo invalido.")
-    if profile.MotionMode != "elapsed" && profile.MotionMode != "step"
+    if profile.MotionMode != "elapsed" && profile.MotionMode != "step" && profile.MotionMode != "timeline"
         throw Error("Modo de movimento invalido.")
     if profile.TriggerMode = "single" && profile.MotionMode != "step"
         throw Error("Tiro unico exige modo por passo.")
