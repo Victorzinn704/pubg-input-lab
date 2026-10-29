@@ -1,32 +1,34 @@
-PUBG INPUT LAB / RECOIL LAB 1.3.0
+PUBG INPUT LAB / RECOIL LAB 1.4.0
 
-No jogo, Ctrl+Alt+letra seleciona e ativa a arma. Outra letra troca o perfil ativo.
-Repetir a mesma arma ligada preserva seu estado e ganho. Ctrl+Alt+D desliga.
+Execute Iniciar.cmd. Na instalacao existente, a pasta pode conservar o nome
+PUBG-Recoil-Lab-1.1.0; a versao interna aparece no painel.
 
-A = M416          B = Beryl M762     K = AKM
-C = ACE32         G = Groza          M = AUG
-S = SCAR-L        U = UMP            I = Micro UZI
-T = Tommy Gun     N = Mini14         L = Mk12
-J = Mk14 single   O = Mk14 automatico H = SKS
+NOVO: BIBLIOTECA DE PRESETS
+Abra o botao Biblioteca no painel para criar/copiar/renomear/excluir presets,
+registrar mira, zoom, postura e acessorios, editar curvas e configurar atalhos.
+Salvar uma copia preserva os perfis e calibracoes antigos.
 
-F3/F4: ganho -/+0.1. F5: salvar ganho. F6: painel.
+As 26 referencias SCHOOL podem ser convertidas em rascunho pela aba propria.
+Intervalo e escala sao hipoteses explicitas. Nao sao calibracoes universais.
+
+Ctrl+Alt+letra ou 1-9: seleciona e ativa o perfil associado.
+Ctrl+Alt+D: desliga globalmente. Ctrl+Alt+0: ponto central opcional.
+A=M416, B=Beryl, K=AKM, C=ACE32, G=Groza, M=AUG, S=SCAR-L,
+U=UMP, I=Micro UZI, T=Tommy Gun, N=Mini14, L=Mk12,
+J=Mk14 single, O=Mk14 automatico, H=SKS.
+
+F3/F4: ganho -/+0.1. F5: salvar ganho e curva. F6: painel.
 F9: marcar evento. F10+botao direito: sonda de diagnostico. F12: encerrar.
-F1/F2/F7/F8/F11 nao controlam mais selecao/ativacao. Mouse4/5 sao preservados.
+Mouse4 e Mouse5 continuam livres. Depois de ativar, solte o gatilho.
+Abrir o painel, editar configuracoes ou trocar biblioteca desarma o perfil.
 
-Depois de ativar/trocar, solte o disparo antes de uma nova rajada.
-Pode manter o botao da mira pressionado. Abrir o painel ou editar ajustes
-desarma; use novamente o atalho da arma. Perda de foco pausa o envio.
-Trocar arma nao reinicia o limite de sessao. Perfis sem ajuste ficam zerados.
+Atalhos editados na biblioteca sao aplicados imediatamente. Edicao externa
+exige reiniciar. A biblioteca fica em presets.local.ini; a copia anterior
+fica em presets.local.ini.bak. Preferencias visuais: display.local.ini.
 
-Os atalhos podem ser editados em hotkeys.ini; reinicie depois da edicao.
-Perfis ficam em profiles.ini e ajustes salvos em calibrations.ini.
-O preparo da instalacao preserva arquivos existentes. Configuracoes novas
-comecam em simulacao, sem movimento real. O indicador mostra estado/perfil/ganho.
+O pacote portatil inclui o AutoHotkey oficial e sua licenca.
+Para instalar do fonte: scripts/Setup-Runtime.ps1, scripts/Prepare-LocalConfig.ps1
+e Validar.ps1. Instalacoes novas comecam em simulacao, desarmadas.
 
-Para instalar de uma copia limpa, execute scripts/Setup-Runtime.ps1,
-scripts/Prepare-LocalConfig.ps1 e Validar.ps1; depois abra Iniciar.cmd.
-
-Documentacao completa: README.md e docs/ARCHITECTURE.md.
-Auditoria e prioridades: docs/AUDIT-1.3.0.md.
-Nao ha calibracao universal de recoil, reconhecimento automatico de arma,
-promessa de indetectabilidade ou vinculo oficial com PUBG/KRAFTON.
+Guia: docs/PRESETS.md. Arquitetura: docs/ARCHITECTURE.md.
+Origem/licencas: THIRD_PARTY_NOTICES.md e references/school/README.md.

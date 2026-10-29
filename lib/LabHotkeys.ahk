@@ -39,8 +39,8 @@ LabParseHotkeys(contents, profiles) {
         key := StrUpper(Trim(entry[2]))
         if !known.Has(name)
             throw Error("Atalhos, linha " lineNumber ": perfil desconhecido: " name)
-        if !RegExMatch(key, "^[A-Z]$")
-            throw Error("Atalhos, linha " lineNumber ": use uma unica letra de A a Z.")
+        if !RegExMatch(key, "^[A-Z1-9]$")
+            throw Error("Atalhos, linha " lineNumber ": use A-Z ou 1-9; zero e reservado ao ponto central.")
         if key = "D"
             throw Error("Ctrl+Alt+D e reservado para desativar.")
         if byProfile.Has(name)

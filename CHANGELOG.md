@@ -1,5 +1,16 @@
 # Histórico de alterações
 
+## 1.4.0 — 2026-10-28
+
+- Biblioteca local com criação, cópia, renomeação, exclusão e importação/exportação de presets.
+- Contexto explícito por arma, mira/zoom, postura, acessórios e condições do ensaio.
+- Editor de segmentos X/Y com prévia; proteção contra substituição acidental de curvas por constantes.
+- Editor de atalhos com aplicação imediata, números 1–9 adicionais e parada Ctrl+Alt+D preservada.
+- Ponto central opcional, com tamanho/cor e Ctrl+Alt+0; sem foco ou captura de cliques.
+- 26 referências SCHOOL atribuídas e licenciadas, com conversão explícita de intervalo e escala para rascunhos não validados.
+- Esquema 1, gravação validada com backup, importação sem sobrescrita de IDs e compatibilidade com arquivos 1.3.0.
+- Empacotamento portátil a partir do commit limpo, runtime oficial, licença e SHA-256.
+
 ## 1.3.0 — 2026-10-19
 
 - Seleção e ativação por Ctrl+Alt+letra para os 15 perfis de arma.

@@ -7,9 +7,12 @@
 #Include %A_ScriptDir%\lib\LabInstance.ahk
 #Include %A_ScriptDir%\lib\LabStatusOverlay.ahk
 #Include %A_ScriptDir%\lib\LabHotkeys.ahk
+#Include %A_ScriptDir%\lib\LabPresetWorkbench.ahk
+#Include %A_ScriptDir%\lib\LabReticle.ahk
 #Include %A_ScriptDir%\tests\EngineTests.ahk
 #Include %A_ScriptDir%\tests\ConfigTests.ahk
 #Include %A_ScriptDir%\tests\LoggerTests.ahk
+#Include %A_ScriptDir%\tests\CaptureWorkbench.ahk
 
 try {
     if A_Args.Length && A_Args[1] = "--self-test" {
@@ -48,12 +51,22 @@ class RecoilLab {
         this.FeedbackCallback := ObjBindMethod(this, "ClearFeedback")
         this.ConfigPath := A_ScriptDir "\profiles.ini"
         this.CalibrationPath := A_ScriptDir "\calibrations.ini"
+        this.LibraryPath := A_ScriptDir "\presets.local.ini"
+        this.PreferencesPath := A_ScriptDir "\display.local.ini"
+        this.HotkeyPath := A_ScriptDir "\hotkeys.ini"
         if smoke {
             DirCreate(A_ScriptDir "\tests\artifacts")
             this.CalibrationPath := A_ScriptDir "\tests\artifacts\calibration-smoke-" LabQpcTicks() ".ini"
+            this.LibraryPath := this.CalibrationPath ".library.ini"
+            this.PreferencesPath := this.CalibrationPath ".display.ini"
+            this.HotkeyPath := this.CalibrationPath ".hotkeys.ini"
         }
         this.Config := LabLoadCalibrations(ReadLabConfig(this.ConfigPath), this.CalibrationPath)
-        this.Hotkeys := LabReadHotkeys(A_ScriptDir "\hotkeys.ini", this.Config.Profiles,
+        this.BaseProfiles := this.Config.Profiles.Clone()
+        this.Library := LabReadLibrary(this.LibraryPath, this.Config.MaxStep)
+        this.Config.Profiles := LabMergeLibrary(this.BaseProfiles, this.Library)
+        this.Preferences := LabReadPreferences(this.PreferencesPath)
+        this.Hotkeys := LabReadHotkeys(this.HotkeyPath, this.Config.Profiles,
             A_ScriptDir "\hotkeys.example.ini")
         this.ProfileIndex := smoke ? 1 : this.Config.StartProfileIndex
         this.Gain := this.Config.Profiles[this.ProfileIndex].SavedGain
@@ -68,6 +81,10 @@ class RecoilLab {
         sources := [A_ScriptFullPath, A_ScriptDir "\lib\RecoilEngine.ahk",
             A_ScriptDir "\lib\TrialLogger.ahk", A_ScriptDir "\lib\LabConfig.ahk",
             A_ScriptDir "\lib\LabStatusOverlay.ahk", A_ScriptDir "\lib\LabHotkeys.ahk", this.Hotkeys.SourcePath]
+        sources.Push(A_ScriptDir "\lib\LabPresets.ahk", A_ScriptDir "\lib\LabPresetWorkbench.ahk",
+            A_ScriptDir "\lib\LabCurvePreview.ahk", A_ScriptDir "\lib\LabReticle.ahk")
+        if FileExist(this.LibraryPath)
+            sources.Push(this.LibraryPath)
         if FileExist(this.CalibrationPath)
             sources.Push(this.CalibrationPath)
         logRoot := A_ScriptDir (smoke ? "\tests\artifacts" : "\logs")
@@ -152,8 +169,10 @@ class RecoilLab {
                 throw Error("Smoke test: desativacao alterou limite de sessao.")
             if LabCanProbe(this.Engine, disabledGeneration, 0, 1, 0, true, false, true, true)
                 throw Error("Smoke test: desativacao nao cancelou sonda pendente.")
+            this.SmokeLibrary()
             this.Gui.Destroy()
             this.StatusGui.Destroy()
+            this.Reticle.Destroy()
             this.Logger.Close("smoke_test_without_hooks_or_input")
             this.Closing := true
             FileAppend("PASS: GUI, modes, session limit, weapon calibration, quick controls and logging; no hooks or input installed.`n", "*")
@@ -163,7 +182,8 @@ class RecoilLab {
         InstallKeybdHook()
         HotIfWinActive("ahk_exe " this.Config.TargetExe)
         for binding in this.Hotkeys.Weapons
-            Hotkey(binding.Chord, ObjBindMethod(this, "WeaponKey", binding.ProfileIndex, binding.Key))
+            Hotkey(binding.Chord, ObjBindMethod(this, "WeaponNameKey", binding.Profile, binding.Key))
+        Hotkey("^!0", ObjBindMethod(this, "ToggleReticle"))
         Hotkey("F3", ObjBindMethod(this, "QuickKey", "gain_down", "F3"))
         Hotkey("F4", ObjBindMethod(this, "QuickKey", "gain_up", "F4"))
         Hotkey("F5", ObjBindMethod(this, "QuickKey", "save_gain", "F5"))
@@ -179,6 +199,213 @@ class RecoilLab {
         this.Refresh()
     }
 
+    OpenLibrary(*) {
+        if this.Failed || this.Closing
+            return
+        this.SetEnabled(false)
+        if !this.HasOwnProp("Workbench")
+            this.Workbench := LabPresetWorkbench(this)
+        else if !this.Workbench.Dirty
+            this.Workbench.RefreshCatalog(this.Config.Profiles[this.ProfileIndex].Name)
+        this.Workbench.Show()
+    }
+
+    HotkeyText() {
+        text := "[Weapons]`n"
+        for binding in this.Hotkeys.Weapons
+            text .= binding.Profile "=" StrUpper(binding.Key) "`n"
+        return text
+    }
+
+    RefreshProfileChoices() {
+        labels := []
+        for profile in this.Config.Profiles
+            labels.Push(profile.Label (this.Hotkeys.ByProfile.Has(profile.Name) ? " | " this.Hotkeys.ByProfile[profile.Name].Label : ""))
+        this.ProfileChoice.Delete()
+        this.ProfileChoice.Add(labels)
+        this.ProfileChoice.Choose(this.ProfileIndex)
+    }
+
+    ApplyLibrary(entries, selectedName) {
+        LabSerializeLibrary(entries, this.Config.MaxStep)
+        combined := LabMergeLibrary(this.BaseProfiles, entries)
+        bindings := LabParseHotkeys(this.HotkeyText(), combined)
+        bindings.SourcePath := this.Hotkeys.SourcePath
+        selected := 0
+        for index, profile in combined {
+            if profile.Name = selectedName
+                selected := index
+        }
+        if !selected
+            throw Error("O perfil selecionado nao pertence a biblioteca proposta.")
+        this.SetEnabled(false)
+        if this.Failed
+            throw Error("Aplicacao interrompida; biblioteca nao foi alterada.")
+        LabWriteLibrary(this.LibraryPath, entries, this.Config.MaxStep)
+        Critical("On")
+        try {
+            this.Library := entries
+            this.Config.Profiles := combined
+            this.Hotkeys := bindings
+            this.ProfileIndex := selected
+            this.RefreshProfileChoices()
+            this.GainInput.Value := combined[selected].SavedGain
+            this.ApplyControls()
+            this.ShowCalibrationFields()
+        } finally Critical("Off")
+        snapshotName := "library-" LabQpcTicks() ".ini"
+        FileCopy(this.LibraryPath, this.Logger.Dir "\" snapshotName)
+        this.Logger.Record(LabEvent("library_saved", "snapshot=" snapshotName ";schema=1"),
+            this.Mode, selectedName, this.Engine.Generation, false, false, false)
+    }
+
+    RegisterWeaponBindings(bindings, enabled := true) {
+        if this.Smoke
+            return
+        HotIfWinActive("ahk_exe " this.Config.TargetExe)
+        try {
+            for binding in bindings.Weapons {
+                if enabled
+                    Hotkey(binding.Chord, ObjBindMethod(this, "WeaponNameKey", binding.Profile, binding.Key), "On")
+                else
+                    try Hotkey(binding.Chord, "Off")
+            }
+        } finally HotIfWinActive()
+    }
+
+    ApplyHotkeyText(text) {
+        candidate := LabParseHotkeys(text, this.Config.Profiles)
+        candidate.SourcePath := this.HotkeyPath
+        this.SetEnabled(false)
+        if this.Failed
+            throw Error("Aplicacao interrompida; atalhos nao foram alterados.")
+        old := this.Hotkeys
+        Critical("On")
+        try {
+            this.RegisterWeaponBindings(old, false)
+            try {
+                this.RegisterWeaponBindings(candidate)
+                LabWriteTextAtomic(this.HotkeyPath, text, (contents) => LabParseHotkeys(contents, this.Config.Profiles))
+            } catch as err {
+                this.RegisterWeaponBindings(candidate, false)
+                this.RegisterWeaponBindings(old)
+                throw err
+            }
+            this.Hotkeys := candidate
+            this.RefreshProfileChoices()
+        } finally Critical("Off")
+        this.Refresh()
+    }
+
+    SavePreferences(prefs) {
+        text := LabPreferencesText(prefs)
+        LabWriteTextAtomic(this.PreferencesPath, text, LabParseDataIni)
+        this.Preferences := prefs.Clone()
+        this.Refresh()
+    }
+
+    ToggleReticle(*) {
+        try {
+            prefs := this.Preferences.Clone()
+            prefs.ReticleEnabled := !prefs.ReticleEnabled
+            this.SavePreferences(prefs)
+        } catch as err {
+            this.QuickFeedback(err.Message, true)
+        } finally KeyWait("0")
+    }
+
+    SmokeLibrary() {
+        sessionStart := this.Engine.SessionStart
+        this.Workbench := LabPresetWorkbench(this)
+        bench := this.Workbench
+        testPreset := LabNewPreset("User_Smoke")
+        testPreset.Label := "M416 6x / teste"
+        testPreset.Weapon := "M416"
+        testPreset.Optic := "6x"
+        testPreset.Stance := "Agachado"
+        testPreset.Segments := [{UntilMs: 500, Dx: 0.25, Dy: 1}, {UntilMs: 3000, Dx: 0, Dy: 2}]
+        bench.Load(testPreset)
+        bench.Save()
+        saved := LabReadLibrary(this.LibraryPath, this.Config.MaxStep)
+        if saved.Length != 1 || saved[1].Segments.Length != 2 || saved[1].Optic != "6x" || this.Engine.Armed
+            throw Error("Smoke: editor nao preservou curva/contexto ou ativou entrada.")
+        if this.Engine.SessionStart != sessionStart || this.SelectedProfile().Name != "User_Smoke"
+            throw Error("Smoke: biblioteca reiniciou prazo ou selecionou perfil incorreto.")
+        libraryBefore := FileRead(this.LibraryPath)
+        bench.NameEdit.Value := ""
+        bench.Save()
+        if FileRead(this.LibraryPath) != libraryBefore || this.Failed
+            throw Error("Smoke: formulario invalido alterou a biblioteca.")
+        bench.Load(saved[1])
+        bench.CurveList.Modify(2, "Select Focus")
+        bench.EndEdit.Value := 3000
+        bench.XEdit.Value := 0
+        bench.YEdit.Value := 3
+        bench.CurveAction("edit")
+        bench.Save()
+        curveSaved := LabReadLibrary(this.LibraryPath, this.Config.MaxStep)[1]
+        if curveSaved.Segments.Length != 2 || curveSaved.Segments[1].Dx != 0.25 || curveSaved.Segments[2].Dy != 3
+            throw Error("Smoke: editor nao preservou os demais segmentos.")
+        bench.Duplicate()
+        if bench.Draft.Name = "User_Smoke" || bench.Draft.Segments.Length != 2 || !bench.Dirty
+            throw Error("Smoke: duplicacao perdeu curva ou identidade.")
+        bench.Load(curveSaved)
+        this.CalibrationX.Value := 5
+        this.CalibrationY.Value := 5
+        this.SaveConstantFromPanel()
+        if this.Config.Profiles[this.ProfileIndex].Segments.Length != 2
+            throw Error("Smoke: painel destruiu curva composta.")
+        bench.NameEdit.Value := "Renomeado"
+        bench.Save()
+        if LabReadLibrary(this.LibraryPath, this.Config.MaxStep)[1].Label != "Renomeado"
+            throw Error("Smoke: renomeacao nao persistiu.")
+        this.GainInput.Value := 1.5
+        this.ApplyControls()
+        this.QuickAction("save_gain")
+        saved := LabReadLibrary(this.LibraryPath, this.Config.MaxStep)[1]
+        if saved.SavedGain != 1.5 || saved.Segments.Length != 2
+            throw Error("Smoke: F5 nao preservou curva e ganho na biblioteca.")
+        bench.RefreshCatalog("User_Smoke")
+        bench.KeyLetter.Value := "Z"
+        bench.BindKey()
+        if !this.Hotkeys.ByProfile.Has("User_Smoke") || this.Hotkeys.ByProfile["User_Smoke"].Key != "z"
+            throw Error("Smoke: editor de atalhos nao aplicou associacao.")
+        before := FileRead(this.HotkeyPath)
+        rejected := false
+        try this.ApplyHotkeyText("[Weapons]`nUser_Smoke=D")
+        catch Error
+            rejected := true
+        if !rejected || FileRead(this.HotkeyPath) != before
+            throw Error("Smoke: conflito de parada alterou arquivo.")
+        bench.Delete()
+        if this.Library.Length != 1
+            throw Error("Smoke: preset associado foi excluido.")
+        this.ApplyHotkeyText(FileRead(A_ScriptDir "\hotkeys.example.ini"))
+        bench.Delete()
+        if this.Library.Length != 0 || this.Engine.SessionStart != sessionStart
+            throw Error("Smoke: exclusao nao preservou estado.")
+        bench.SchoolWeapon.Choose(1)
+        bench.SchoolStance.Choose(2)
+        bench.ConvertSchool()
+        if bench.Draft.RecoilStatus != "external_unvalidated" || !bench.Dirty
+            throw Error("Smoke: referencia nao foi convertida em rascunho.")
+        bench.Save()
+        if this.Library.Length != 1 || this.Library[1].Stance != "Agachado"
+            throw Error("Smoke: referencia/contexto nao persistiu.")
+        bench.DotCheck.Value := 1
+        bench.DotSize.Value := 3
+        bench.DotColor.Value := "E85D6A"
+        bench.SaveDisplay()
+        if LabReadPreferences(this.PreferencesPath).ReticleSize != 3 || this.Reticle.Shown
+            throw Error("Smoke: preferencia visual ou isolamento invalido.")
+        if this.Engine.Armed || this.Engine.SessionStart != sessionStart
+            throw Error("Smoke: biblioteca alterou armamento ou prazo.")
+        if A_Args.Length > 1 && A_Args[2] = "--capture-ui"
+            LabCaptureWorkbench(bench, A_ScriptDir "\tests\artifacts")
+        bench.Gui.Destroy()
+        this.DeleteProp("Workbench")
+    }
+
     SelectedProfile() {
         return LabScaledProfile(this.Config.Profiles[this.ProfileIndex], this.Gain)
     }
@@ -187,6 +414,7 @@ class RecoilLab {
         this.Overlay := LabStatusOverlay()
         this.StatusGui := this.Overlay.Gui
         this.StatusLabel := this.Overlay.Label
+        this.Reticle := LabReticle()
     }
 
     BuildGui() {
@@ -194,7 +422,7 @@ class RecoilLab {
         this.Gui.SetFont("s10", "Segoe UI")
         this.Gui.MarginX := 18
         this.Gui.MarginY := 14
-        this.Gui.AddText("w580", "Ensaio de entrada | AutoHotkey v2 | versao 1.3.0")
+        this.Gui.AddText("w580", "PUBG Input Lab | Biblioteca e ensaios | versao 1.4.0")
         this.Gui.AddText("xm y+10 w580", "Alvo: " this.Config.TargetExe " | Gatilho: segurar os botoes esquerdo + direito")
         this.StateText := this.Gui.AddText("xm y+12 w580 h24", "DESARMADO")
         this.FeedbackText := this.Gui.AddText("xm y+2 w580 h20", "")
@@ -216,7 +444,8 @@ class RecoilLab {
         this.CalibrationX := this.Gui.AddEdit("x+6 w65", "0")
         this.Gui.AddText("x+12 yp+3", "Y:")
         this.CalibrationY := this.Gui.AddEdit("x+6 yp-3 w65", "0")
-        this.Gui.AddButton("x+12 w230", "Aplicar e salvar X/Y").OnEvent("Click", ObjBindMethod(this, "SaveCalibration"))
+        this.Gui.AddButton("x+12 w230", "Salvar ajuste constante").OnEvent("Click", ObjBindMethod(this, "SaveConstantFromPanel"))
+        this.Gui.AddButton("xm y+10 w580 h30", "Biblioteca: presets, contexto, curvas e atalhos").OnEvent("Click", ObjBindMethod(this, "OpenLibrary"))
         this.DetailText := this.Gui.AddEdit("xm y+14 w580 r5 ReadOnly -Wrap", "")
         this.ToggleButton := this.Gui.AddButton("xm y+14 w180 h32", "Armar / desarmar")
         this.ToggleButton.OnEvent("Click", ObjBindMethod(this, "Toggle"))
@@ -226,9 +455,7 @@ class RecoilLab {
         this.Gui.AddButton("x+12 w180", "Abrir configuracao").OnEvent("Click", ObjBindMethod(this, "OpenConfig"))
         this.Gui.AddText("xm y+14 w580", "Ctrl+Alt + letra da arma: selecionar e ativar | Ctrl+Alt+D: parar | F12: sair")
         this.Gui.AddText("xm y+8 w580", "Atalho de cada arma na lista acima. F3/F4 ajustam ganho; F5 salva. Ajustes desarmam.")
-        this.Gui.AddText("xm y+8 w580", "Teste: segure F10 + botao direito, sem esquerdo. Pulso curto para baixo; desarma.")
-        this.Gui.AddText("xm y+8 w580", "Ao armar/entre rajadas, solte o botao esquerdo; pode manter a mira.")
-        this.Gui.AddText("xm y+8 w580", "Armas SEM CALIBRACAO usam X/Y=0. Cadencia documentada nao calibra recoil.")
+        this.Gui.AddText("xm y+8 w580", "Ctrl+Alt+0: ponto central. Ao armar, solte o gatilho antes da proxima rajada.")
         this.SessionText := this.Gui.AddText("xm y+10 w580", "Sessao: " this.Logger.SessionId)
         this.Gui.OnEvent("Close", ObjBindMethod(this, "Quit"))
         this.Gui.OnEvent("Escape", ObjBindMethod(this, "ShowPanel"))
@@ -244,6 +471,18 @@ class RecoilLab {
             : profile.MotionMode = "elapsed"
                 ? "Suavizado: contagens por " profile.IntervalMs " ms, distribuidas pelo tempo decorrido."
                 : "Ajuste de teste: contagens por passo de " profile.IntervalMs " ms; nao por bala."
+    }
+
+    SaveConstantFromPanel(*) {
+        if this.Config.Profiles[this.ProfileIndex].Segments.Length > 1 {
+            this.QuickFeedback("Curva com varios segmentos. Edite na biblioteca para preservar a progressao.", true)
+            return
+        }
+        if SubStr(this.Config.Profiles[this.ProfileIndex].Name, 1, 5) = "User_" {
+            this.QuickFeedback("Edite este preset na biblioteca para salvar contexto e curva juntos.")
+            return
+        }
+        this.SaveCalibration()
     }
 
     ProfileChanged(*) {
@@ -310,6 +549,15 @@ class RecoilLab {
     WeaponKey(profileIndex, key, *) {
         try this.SelectWeapon(profileIndex)
         finally KeyWait(key)
+    }
+
+    WeaponNameKey(name, key, *) {
+        for index, profile in this.Config.Profiles {
+            if profile.Name = name {
+                this.WeaponKey(index, key)
+                return
+            }
+        }
     }
 
     SelectWeapon(profileIndex, focused := unset) {
@@ -394,6 +642,18 @@ class RecoilLab {
                     }
                     profile := this.Config.Profiles[this.ProfileIndex]
                     this.RecordEvents(this.Engine.Disarm("quick_" action, this.Logger.NowMs()))
+                    if SubStr(profile.Name, 1, 5) = "User_" {
+                        entries := this.Library.Clone()
+                        for index, entry in entries {
+                            if entry.Name = profile.Name {
+                                entries[index] := LabClonePreset(profile)
+                                entries[index].SavedGain := this.Gain
+                            }
+                        }
+                        this.ApplyLibrary(entries, profile.Name)
+                        this.QuickFeedback("Ganho e curva salvos na biblioteca. " this.ActivationHint())
+                        return
+                    }
                     LabSaveProfileCalibration(this.CalibrationPath, profile, this.Gain, this.Config.MaxStep)
                     profile.SavedGain := this.Gain
                     profile.RecoilStatus := "user_set_unvalidated"
@@ -440,7 +700,9 @@ class RecoilLab {
         compactState := this.Failed ? "ERRO" : (zeroInput ? "SEM AJUSTE" : (this.Engine.Armed ? "ARMADO" : "DESARMADO"))
         if this.Mode = "dry_run"
             compactState := "SIM " compactState
-        status := compactState " | " this.Config.Profiles[this.ProfileIndex].Name " | ganho " Format("{:.2f}", this.Gain)
+        active := this.Config.Profiles[this.ProfileIndex]
+        displayName := active.HasOwnProp("Weapon") ? active.Weapon " " active.Optic : active.Name
+        status := compactState " | " displayName " | ganho " Format("{:.2f}", this.Gain)
         if this.Smoke {
             this.StatusLabel.Value := status
             return
@@ -448,6 +710,7 @@ class RecoilLab {
         A_IconTip := "Recoil Lab: " label " | " this.SelectedProfile().Name " | " this.Gain
         target := this.Closing ? 0 : WinActive("ahk_exe " this.Config.TargetExe)
         this.Overlay.Update(target, status, this.Failed || zeroInput ? "FFD166" : (this.Engine.Armed ? "83E3B0" : "D9E2EC"))
+        this.Reticle.Update(target, this.Preferences.ReticleEnabled, this.Preferences.ReticleSize, this.Preferences.ReticleColor)
     }
 
     SmokeQuickControls(sessionStart) {
@@ -753,8 +1016,11 @@ class RecoilLab {
             . profile.IntervalMs " ms | Ganho: " this.Gain
         originalProfile := this.Config.Profiles[this.ProfileIndex]
         statusName := originalProfile.RecoilStatus = "unmeasured" ? "PENDENTE (X/Y desconhecidos)"
-            : originalProfile.RecoilStatus = "user_set_unvalidated" ? "AJUSTE SALVO - validar no ensaio" : "EXEMPLO SINTETICO"
+            : originalProfile.RecoilStatus = "user_set_unvalidated" ? "AJUSTE SALVO - validar no ensaio"
+            : originalProfile.RecoilStatus = "external_unvalidated" ? "REFERENCIA EXTERNA - nao validada" : "EXEMPLO SINTETICO"
         description .= "`r`nModo: " profile.TriggerMode " / " profile.MotionMode " | " statusName
+        if originalProfile.HasOwnProp("Weapon")
+            description .= "`r`n" originalProfile.Weapon " | " originalProfile.Optic " / " originalProfile.Zoom " | " originalProfile.Stance " | " originalProfile.Attachments
         if !LabProfileHasMovement(profile)
             description .= "`r`nX/Y=0: sem movimento configurado; este perfil nao compensa recuo."
         description .= "`r`n" this.ActivationHint()
@@ -823,6 +1089,9 @@ class RecoilLab {
         SetTimer(this.FeedbackCallback, 0)
         this.ClearFeedback()
         this.StatusGui.Destroy()
+        this.Reticle.Destroy()
+        if this.HasOwnProp("Workbench")
+            this.Workbench.Gui.Destroy()
         try {
             this.RecordEvents(events)
             this.Logger.Close(reason ";exit_code=" code)

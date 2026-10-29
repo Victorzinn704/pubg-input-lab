@@ -7,6 +7,9 @@
 /profiles.ini
 /calibrations.ini
 /hotkeys.ini
+/presets.local.ini
+/display.local.ini
+/*.ini.bak
 *.pending-*
 *.stdout.txt
 *.stderr.txt
