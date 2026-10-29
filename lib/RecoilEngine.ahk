@@ -135,7 +135,7 @@ class RecoilEngine {
             events.Push(this._StopBurst("burst_limit", nowMs))
             return events
         }
-        if this.Profile.MotionMode = "elapsed"
+        if this.Profile.MotionMode = "elapsed" || this.Profile.MotionMode = "timeline"
             return this._ElapsedMove(nowMs, elapsed, events)
         if nowMs < this._due
             return events
@@ -173,7 +173,10 @@ class RecoilEngine {
             events.Push(this._StopBurst("scheduler_late", nowMs))
             return events
         }
-        windowStart := elapsed - Min(delta, this.Profile.IntervalMs)
+        ; Timeline integrates the actual bounded sample interval. Legacy elapsed keeps
+        ; its original discard policy so existing calibrations do not change silently.
+        timeline := this.Profile.MotionMode = "timeline"
+        windowStart := elapsed - (timeline ? delta : Min(delta, this.Profile.IntervalMs))
         rawX := 0.0
         rawY := 0.0
         segmentStart := 0
@@ -185,7 +188,12 @@ class RecoilEngine {
             if segmentStart >= elapsed
                 break
         }
-        ; Drop older elapsed time permanently, retaining only sub-count rounding residue.
+        if timeline && (Abs(rawX + this._residualX) >= this.Limits.MaxStep + 1
+            || Abs(rawY + this._residualY) >= this.Limits.MaxStep + 1) {
+            events.Push(this._StopBurst("rate_limit", nowMs))
+            return events
+        }
+        ; No movement queue: a late or oversized sample stops the burst.
         this._lastMotion := nowMs
         this._due := nowMs + this.Profile.IntervalMs
         events.Push(this._QuantizedMove(rawX, rawY, elapsed, nowMs - lag, lag))
@@ -193,8 +201,10 @@ class RecoilEngine {
     }
 
     _QuantizedMove(rawX, rawY, elapsed, due, lag) {
-        boundedX := Max(-this.Limits.MaxStep, Min(this.Limits.MaxStep, rawX + this._residualX))
-        boundedY := Max(-this.Limits.MaxStep, Min(this.Limits.MaxStep, rawY + this._residualY))
+        boundedX := this.Profile.MotionMode = "timeline" ? rawX + this._residualX
+            : Max(-this.Limits.MaxStep, Min(this.Limits.MaxStep, rawX + this._residualX))
+        boundedY := this.Profile.MotionMode = "timeline" ? rawY + this._residualY
+            : Max(-this.Limits.MaxStep, Min(this.Limits.MaxStep, rawY + this._residualY))
         dx := boundedX < 0 ? Ceil(boundedX) : Floor(boundedX)
         dy := boundedY < 0 ? Ceil(boundedY) : Floor(boundedY)
         this._residualX := boundedX - dx
@@ -259,9 +269,9 @@ class RecoilEngine {
 
     _Validate(profile, limits) {
         if profile.HasOwnProp("MotionMode") {
-            if profile.MotionMode != "step" && profile.MotionMode != "elapsed"
-                throw ValueError("MotionMode must be step or elapsed.")
-            if profile.MotionMode = "elapsed" && profile.HasOwnProp("TriggerMode") && profile.TriggerMode = "single"
+            if profile.MotionMode != "step" && profile.MotionMode != "elapsed" && profile.MotionMode != "timeline"
+                throw ValueError("MotionMode must be step, elapsed or timeline.")
+            if profile.MotionMode != "step" && profile.HasOwnProp("TriggerMode") && profile.TriggerMode = "single"
                 throw ValueError("Elapsed motion requires continuous trigger mode.")
         }
         if profile.HasOwnProp("TriggerMode") && profile.TriggerMode != "continuous" && profile.TriggerMode != "single"

@@ -31,7 +31,7 @@ class TrialLogger {
             . "elapsed_clock=QueryPerformanceCounter; monotonic elapsed milliseconds`r`n"
             . "evidence_scope=Input records describe attempted input, not reception by the target or anti-cheat detection.`r`n"
             . "planned_units=Signed integer Windows mouse movement arguments; not measured in-game displacement.`r`n"
-            . "lag_ms=Step: scheduling delay. Elapsed: sample gap exceeding IntervalMs (discarded time); not OS call duration.`r`n"
+            . "lag_ms=Step: scheduling delay. Time modes: sample gap exceeding IntervalMs; legacy elapsed discards excess, timeline integrates bounded gaps. Not OS call duration.`r`n"
             . "send_call_qpc_ticks=QPC sampled immediately before the OS input call; blank when unavailable.`r`n"
             . "send_return_qpc_ticks=QPC sampled immediately after the OS input call returns; blank when unavailable.`r`n"
             . "os_inserted_count=Input events accepted by the OS call; blank when unavailable. This is not target reception.`r`n"

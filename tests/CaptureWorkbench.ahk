@@ -11,6 +11,18 @@ LabCaptureWorkbench(bench, folder) {
     } finally bench.Gui.Hide()
 }
 
+LabCapturePanel(app, folder) {
+    app.Gui.Show("NA w620")
+    try {
+        for index, name in ["use", "adjust", "diagnostics"] {
+            app.PanelTabs.Choose(index)
+            WinRedraw(app.Gui.Hwnd)
+            Sleep(60)
+            LabCaptureWindow(app.Gui.Hwnd, folder "\panel-" name ".bmp")
+        }
+    } finally app.Gui.Hide()
+}
+
 LabCaptureWindow(hwnd, path) {
     rect := Buffer(16)
     DllCall("GetWindowRect", "Ptr", hwnd, "Ptr", rect)

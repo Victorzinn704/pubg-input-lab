@@ -3,7 +3,7 @@ $labExe = Join-Path $PSScriptRoot 'runtime\AutoHotkey64.exe'
 $labScript = Join-Path $PSScriptRoot 'RecoilLab.ahk'
 $reportRoot = Join-Path $PSScriptRoot 'tests\artifacts'
 New-Item -ItemType Directory -Path $reportRoot -Force | Out-Null
-foreach ($testMode in @('self-test', 'smoke-test', 'config-dependency', 'instance', 'overlay', 'hotkeys', 'presets')) {
+foreach ($testMode in @('self-test', 'smoke-test', 'config-dependency', 'instance', 'overlay', 'hotkeys', 'presets', 'workflow')) {
     $outputPath = Join-Path $reportRoot ($testMode + '.stdout.txt')
     $errorPath = Join-Path $reportRoot ($testMode + '.stderr.txt')
     $testArguments = if ($testMode -eq 'config-dependency') {
@@ -16,6 +16,8 @@ foreach ($testMode in @('self-test', 'smoke-test', 'config-dependency', 'instanc
         @('/ErrorStdOut=utf-8', ('"' + (Join-Path $PSScriptRoot 'tests\HotkeyTests.ahk') + '"'))
     } elseif ($testMode -eq 'presets') {
         @('/ErrorStdOut=utf-8', ('"' + (Join-Path $PSScriptRoot 'tests\PresetTests.ahk') + '"'))
+    } elseif ($testMode -eq 'workflow') {
+        @('/ErrorStdOut=utf-8', ('"' + (Join-Path $PSScriptRoot 'tests\WorkflowTests.ahk') + '"'))
     } else {
         @('/ErrorStdOut=utf-8', ('"' + $labScript + '"'), ('--' + $testMode))
     }

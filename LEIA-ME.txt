@@ -1,9 +1,19 @@
-PUBG INPUT LAB / RECOIL LAB 1.4.1
+PUBG INPUT LAB / RECOIL LAB 1.5.0
 
 Execute Iniciar.cmd. Na instalacao existente, a pasta pode conservar o nome
 PUBG-Recoil-Lab-1.1.0; a versao interna aparece no painel.
 
-NOVO: BIBLIOTECA DE PRESETS
+NOVO: PAINEL ORGANIZADO
+Usar: escolha arma e variante. Ajustar: ganho e copia por tempo acumulado.
+Diagnostico: detalhes e logs. A biblioteca permite buscar arma, mira e nome.
+Atalhos de arma lembram a variante escolhida. Sem preferencia, um perfil
+base vazio procura uma variante compativel com movimento. Perfis vazios
+nao podem armar em modo real. Ao reabrir, a selecao volta desarmada.
+
+Ajustar > Criar variante por tempo copia curva e ganho para o novo motor
+por tempo acumulado. O original fica preservado para comparar.
+
+BIBLIOTECA DE PRESETS
 Abra o botao Biblioteca no painel para criar/copiar/renomear/excluir presets,
 registrar mira, zoom, postura e acessorios, editar curvas e configurar atalhos.
 Salvar uma copia preserva os perfis e calibracoes antigos.
@@ -15,7 +25,8 @@ Hipoteses: 16 ms, escala 0.1 e duracao 3 s. Nao sao calibracoes universais.
 Para acrescentar os presets a uma biblioteca existente, feche o aplicativo
 e execute Importar-SCHOOL.cmd. Seus ajustes existentes sao preservados.
 
-Ctrl+Alt+letra ou 1-9: seleciona e ativa o perfil associado.
+Ctrl+Alt+letra ou 1-9: seleciona e ativa a variante preferida da arma.
+Atalhos diretos a presets da biblioteca continuam exatos.
 Ctrl+Alt+D: desliga globalmente. Ctrl+Alt+0: ponto central opcional.
 A=M416, B=Beryl, K=AKM, C=ACE32, G=Groza, M=AUG, S=SCAR-L,
 U=UMP, I=Micro UZI, T=Tommy Gun, N=Mini14, L=Mk12,
@@ -29,6 +40,7 @@ Abrir o painel, editar configuracoes ou trocar biblioteca desarma o perfil.
 Atalhos editados na biblioteca sao aplicados imediatamente. Edicao externa
 exige reiniciar. A biblioteca fica em presets.local.ini; a copia anterior
 fica em presets.local.ini.bak. Preferencias visuais: display.local.ini.
+Ultima selecao e variantes preferidas: selection.local.ini.
 
 O pacote portatil inclui o AutoHotkey oficial e sua licenca.
 Para instalar do fonte: scripts/Setup-Runtime.ps1, scripts/Prepare-LocalConfig.ps1

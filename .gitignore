@@ -9,6 +9,7 @@
 /hotkeys.ini
 /presets.local.ini
 /display.local.ini
+/selection.local.ini
 /*.ini.bak
 *.pending-*
 *.stdout.txt

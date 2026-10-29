@@ -4,7 +4,9 @@
 
 | Componente | Responsabilidade |
 | --- | --- |
-| `RecoilLab.ahk` | Composição, interface, ciclo de atualização, comandos e guarda final do envio |
+| `RecoilLab.ahk` | Composição, ciclo de atualização, comandos e guarda final do envio |
+| `lib/LabMainPanel.ahk` | Construção do painel Usar/Ajustar/Diagnóstico |
+| `lib/LabProfileTools.ahk` | Resolução de variantes, busca, seleção persistente e conversão por disparo |
 | `lib/LabHotkeys.ahk` | Leitura e validação dos atalhos; transição de perfil sem dependência da interface |
 | `lib/RecoilEngine.ahk` | Estados, tempo, rajadas, limites e eventos de movimento; sem APIs do sistema operacional |
 | `lib/LabConfig.ahk` | Perfis, calibrações, validação numérica e gravação por arquivo temporário |
@@ -49,6 +51,14 @@ Excluir um preset ainda associado é recusado. O painel simples recusa converter
 `LabCyclePresetIndex` resolve a próxima/anterior variante por identidade normalizada da arma e modo de disparo. É uma função pura; o controlador delega a mudança à mesma transição de ativação já validada. Não usa reconhecimento de tela nem gera uma fila de entrada. Catálogos sem variante são operações vazias. `presets.example.ini` é um produto determinístico dos dados SCHOOL; a instalação incremental usa IDs estáveis e a mesma exclusão mútua do runtime.
 
 O arquivo de calibrações é separado dos exemplos versionados. Uma atualização de código preserva os arquivos locais. Uma instalação nova usa simulação e não importa os ajustes de outro usuário.
+
+## Seleção e temporização 1.5.0
+
+A resolução de atalhos base ocorre por identidade de arma e modo de disparo, usando uma preferência persistida apenas para curvas com movimento. Preferências órfãs ou de outro grupo são ignoradas. Atalhos diretos de biblioteca permanecem exatos. `selection.local.ini` é privado e usa gravação atômica com backup; restaurar seleção nunca restaura armamento. Falha de leitura preserva o arquivo e informa o usuário.
+
+O modo `timeline` integra o trecho da curva desde a amostra anterior. Preserva resíduos fracionários e emite no máximo um movimento por tick. Um intervalo maior que `IntervalMs + MaxLateMs`, um movimento inteiro acima de `MaxStep`, perda de foco, parada ou prazo cancelam o envio conforme a máquina de estados. Não existe recuperação de uma fila de movimentos. Os modos `step` e `elapsed` mantêm os contratos anteriores.
+
+O conversor por disparo transforma incrementos em taxas por intervalo de referência; é independente de UI e entrada. A biblioteca continua no esquema 1, com o novo valor `timeline`; versões anteriores recusam esse modo. O backup de instalação deve incluir código e dados antes de uma reversão completa.
 
 ## Limites de arquitetura
 

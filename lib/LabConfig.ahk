@@ -24,10 +24,10 @@ ReadLabConfig(path) {
         if profile.TriggerMode != "continuous" && profile.TriggerMode != "single"
             throw Error(section ": TriggerMode deve ser continuous ou single.")
         profile.MotionMode := IniRead(path, section, "MotionMode", "step")
-        if profile.MotionMode != "step" && profile.MotionMode != "elapsed"
-            throw Error(section ": MotionMode deve ser step ou elapsed.")
-        if profile.MotionMode = "elapsed" && profile.TriggerMode != "continuous"
-            throw Error(section ": MotionMode elapsed exige TriggerMode continuous.")
+        if profile.MotionMode != "step" && profile.MotionMode != "elapsed" && profile.MotionMode != "timeline"
+            throw Error(section ": MotionMode deve ser step, elapsed ou timeline.")
+        if profile.MotionMode != "step" && profile.TriggerMode != "continuous"
+            throw Error(section ": modo por tempo exige disparo continuo.")
         profile.MinTriggerMs := LabNumber(IniRead(path, section, "MinTriggerMs", "0"), "MinTriggerMs", 0, 1000)
         profile.FireIntervalMs := LabNumber(IniRead(path, section, "FireIntervalMs", "0"), "FireIntervalMs", 0, 1000)
         profile.RecoilStatus := IniRead(path, section, "RecoilStatus", "synthetic_example")
