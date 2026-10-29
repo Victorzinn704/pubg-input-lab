@@ -1,5 +1,12 @@
 # Histórico de alterações
 
+## 1.4.1 — 2026-10-28
+
+- 78 presets SCHOOL (FDCaffeine) prontos para seleção: 26 armas e três posturas, com origem e hipóteses de conversão preservadas.
+- Ctrl+. avança e Ctrl+, volta entre presets da mesma arma/modo; navegação circular e ativação com soltura do gatilho.
+- Origem/postura visíveis no indicador compacto; crédito completo no nome do preset.
+- Importação incremental idempotente, sem substituir ajustes existentes, e biblioteca de exemplo reproduzível.
+
 ## 1.4.0 — 2026-10-28
 
 - Biblioteca local com criação, cópia, renomeação, exclusão e importação/exportação de presets.

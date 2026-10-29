@@ -46,6 +46,8 @@ Trocas de biblioteca preservam o início da sessão e invalidam a geração ante
 
 Excluir um preset ainda associado é recusado. O painel simples recusa converter uma curva composta em constante. F5 persiste um preset da biblioteca pelo mesmo esquema, preservando curva e contexto. Snapshots de biblioteca acompanham os eventos locais de gravação.
 
+`LabCyclePresetIndex` resolve a próxima/anterior variante por identidade normalizada da arma e modo de disparo. É uma função pura; o controlador delega a mudança à mesma transição de ativação já validada. Não usa reconhecimento de tela nem gera uma fila de entrada. Catálogos sem variante são operações vazias. `presets.example.ini` é um produto determinístico dos dados SCHOOL; a instalação incremental usa IDs estáveis e a mesma exclusão mútua do runtime.
+
 O arquivo de calibrações é separado dos exemplos versionados. Uma atualização de código preserva os arquivos locais. Uma instalação nova usa simulação e não importa os ajustes de outro usuário.
 
 ## Limites de arquitetura

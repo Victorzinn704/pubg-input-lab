@@ -1,4 +1,4 @@
-PUBG INPUT LAB / RECOIL LAB 1.4.0
+PUBG INPUT LAB / RECOIL LAB 1.4.1
 
 Execute Iniciar.cmd. Na instalacao existente, a pasta pode conservar o nome
 PUBG-Recoil-Lab-1.1.0; a versao interna aparece no painel.
@@ -8,8 +8,12 @@ Abra o botao Biblioteca no painel para criar/copiar/renomear/excluir presets,
 registrar mira, zoom, postura e acessorios, editar curvas e configurar atalhos.
 Salvar uma copia preserva os perfis e calibracoes antigos.
 
-As 26 referencias SCHOOL podem ser convertidas em rascunho pela aba propria.
-Intervalo e escala sao hipoteses explicitas. Nao sao calibracoes universais.
+SCHOOL (FDCaffeine): 78 presets, 26 armas x 3 posturas, prontos na biblioteca.
+Ctrl+. avanca e Ctrl+, volta entre os presets da mesma arma/modo.
+A troca seleciona e ativa. Solte o gatilho antes da proxima rajada.
+Hipoteses: 16 ms, escala 0.1 e duracao 3 s. Nao sao calibracoes universais.
+Para acrescentar os presets a uma biblioteca existente, feche o aplicativo
+e execute Importar-SCHOOL.cmd. Seus ajustes existentes sao preservados.
 
 Ctrl+Alt+letra ou 1-9: seleciona e ativa o perfil associado.
 Ctrl+Alt+D: desliga globalmente. Ctrl+Alt+0: ponto central opcional.

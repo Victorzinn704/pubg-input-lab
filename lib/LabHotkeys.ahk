@@ -100,3 +100,33 @@ LabProfileHasMovement(profile) {
     }
     return false
 }
+
+LabWeaponIdentity(profile) {
+    name := profile.HasOwnProp("Weapon") ? profile.Weapon : profile.Name
+    key := RegExReplace(StrUpper(StrReplace(name, Chr(0x039F), "O")), "[^A-Z0-9]", "")
+    aliases := Map("M4", "M416", "BERYL", "BERYLM762", "UZI", "MICROUZI",
+        "UMP45", "UMP", "THOMPSON", "TOMMYGUN", "MK14SINGLE", "MK14", "MK14CONTINUOUS", "MK14")
+    return aliases.Has(key) ? aliases[key] : key
+}
+
+LabCyclePresetIndex(profiles, currentIndex, direction) {
+    if direction != 1 && direction != -1
+        throw Error("Direcao deve ser +1 ou -1.")
+    if !IsInteger(currentIndex) || currentIndex < 1 || currentIndex > profiles.Length
+        throw Error("Indice de perfil invalido.")
+    current := profiles[currentIndex]
+    identity := LabWeaponIdentity(current)
+    mode := current.HasOwnProp("TriggerMode") ? current.TriggerMode : "continuous"
+    candidates := []
+    position := 0
+    for index, profile in profiles {
+        profileMode := profile.HasOwnProp("TriggerMode") ? profile.TriggerMode : "continuous"
+        if LabWeaponIdentity(profile) = identity && profileMode = mode {
+            candidates.Push(index)
+            if index = currentIndex
+                position := candidates.Length
+        }
+    }
+    next := Mod(position - 1 + direction + candidates.Length, candidates.Length) + 1
+    return candidates[next]
+}
