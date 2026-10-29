@@ -8,7 +8,8 @@
 ; Typography: Segoe UI, 10pt body / 15pt title; spacing on an 8px grid.
 class LabMainPanel {
     static Build(app) {
-        app.Gui := Gui(, "Recoil Lab - PUBG Input Lab")
+        ; Stable title is also the existing-instance notification endpoint.
+        app.Gui := Gui(, "Recoil Lab - ensaio instrumentado")
         app.Gui.SetFont("s10 c263442", "Segoe UI")
         app.Gui.BackColor := "F3F5F7"
         app.Gui.MarginX := 24

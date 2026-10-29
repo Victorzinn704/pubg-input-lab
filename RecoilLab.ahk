@@ -117,6 +117,8 @@ class RecoilLab {
         OnExit(ObjBindMethod(this, "OnShutdown"))
         if smoke {
             this.Gui.Show("Hide w620")
+            if this.Gui.Title != "Recoil Lab - ensaio instrumentado"
+                throw Error("Smoke: titulo incompativel com a notificacao de instancia existente.")
             this.GainInput.Value := "1.5"
             this.ProfileChoice.Choose(2)
             this.ModeChoice.Choose(2)
